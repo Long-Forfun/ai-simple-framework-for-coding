@@ -14,7 +14,7 @@
 | **G2** | Stranger-path E2E | pack→cài tarball→CLI sống→**self-test bản cài không ENOENT**→init→doctor→First-win CHẶN + 10 commit sạch 0 chặn oan + secret/injection chặn + update giữ CONFIG | `npm run stranger-path` (`scripts/stranger-path.js`) | ✅ implemented |
 | **G3** | Ship-gate | require-coverage + **runtime-file-coverage** (`path.join(PKG_ROOT,…)`) + template-coverage + link-check trên tarball | `npm run ship-gate` (`prepublishOnly`) | ✅ implemented |
 | **G4** | Docs-lint + Dogfood | hook tự cài + đồng bộ template + version-stamp + docs sống không over-claim | `npm run dogfood-gate` | ✅ implemented |
-| **G5** | CI matrix 2 OS | G1–G4 + rule-enforcer xanh trên ubuntu + windows | `.github/workflows/gates.yml` | ✅ implemented |
+| **G5** | CI matrix 3 OS | G1–G4 + rule-enforcer xanh trên ubuntu + windows + macos (macos thêm 2026-10-20 — xanh local, chờ lượt CI đầu) | `.github/workflows/gates.yml` | ✅ implemented |
 | **G6** | Performance budget | hook trên repo 20 doc × 4 covers-path ≤ 20s (regression 100× v1.19 là lý do tồn tại) | `node scripts/perf-budget.js` (trong `npm test` + `gates`) | ✅ implemented (~9–14s) |
 | A1 | Security-mutation | 12 ca đột biến security-verify: 0 false-pass / 0 false-block | `sh scripts/mutation-suite.sh` (trong `npm test`) | ✅ built — ADVISORY theo triết lý, nhưng chạy như gate |
 | A2 | Eval ngữ nghĩa 5 skill | 34 case × control/treatment × ≥2 judge mù; `--report` chỉ in con số khi đủ 3 điều kiện (phủ 34 / từng case ≥2 vòng đủ / inter-rater ≥80%) | `node scripts/eval-runner.js --report`; giao thức `docs/baseline/semantic-ab-protocol.md`; artifact thô `docs/baseline/semantic-runs/` | ✅ built — ADVISORY, kết quả là "internal recorded result", không phải benchmark ngoài |
@@ -22,7 +22,7 @@
 ## Cách chạy + ngưỡng hành động
 
 - **Local trước publish**: `npm run gates` (G1+G3+G4+G6+rule-enforcer) → `npm run stranger-path` (G2). `prepublishOnly` tự chạy khi `npm publish`.
-- **Mỗi push**: CI matrix chạy toàn bộ trên 2 OS.
+- **Mỗi push**: CI matrix chạy toàn bộ trên 3 OS.
 - **Bất kỳ GATE đỏ → KHÔNG publish.** Nhiều gate đỏ → sửa theo chi-phí-thấp-nhất.
 - **Chống bão hoà**: mỗi **lời hứa MỚI** trong README/SKILL phải kèm 1 kịch bản mới trong G2.
 - File này nằm trong identity scan (đổi số bản sắc thì đây phải đổi theo, không thì gate đỏ).

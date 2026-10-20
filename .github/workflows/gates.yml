@@ -1,5 +1,6 @@
-# G5 của bộ chấm điểm — CI matrix 2 OS chạy G1–G4 + G2 stranger-path.
+# G5 của bộ chấm điểm — CI matrix 3 OS chạy G1–G4 + G2 stranger-path.
 # Lý do 2 OS: cả wave W1 v1.5.0 là bug CHỈ-Windows (path `C:\` không match `case /*)`).
+# macOS thêm 2026-10-20: /bin/sh = bash 3.2 + BSD date/sed/regex — 3 lớp bug CHỈ-macOS lọt vì matrix thiếu.
 # Timing hook chỉ ĐO-VÀ-GHI (advisory), KHÔNG assert — CI runner dao động.
 name: gates
 
@@ -13,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

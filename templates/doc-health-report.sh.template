@@ -11,7 +11,8 @@
 #   Windows (scheduled task khởi động ở System32 -> PHẢI cd vào repo trước):
 #     schtasks /create /tn "doc-health" /sc weekly /d MON /st 08:00 ^
 #       /tr "\"C:\Program Files\Git\bin\sh.exe\" -c \"cd /c/path/repo && sh scripts/doc-health-report.sh\""
-# Yêu cầu: git >= 1.9 (pathspec ':(exclude)'), GNU date (macOS: brew install coreutils).
+# Yêu cầu: git >= 1.9 (pathspec ':(exclude)'). Chạy được cả GNU (Linux/Git Bash) lẫn BSD (macOS):
+# date -d → fallback date -j -f (ép 00:00 như GNU); sed -i → sedi(); sed '/x/a' → awk.
 # Chủ sở hữu tín hiệu dead-symbol: --ci (fail PR) + full --status hằng tuần (đặt marker);
 # hook per-commit dùng --fast nên KHÔNG bắt dead-symbol — by design, xem nguyên tắc 12.
 #   GitHub Actions (.github/workflows/doc-health.yml — fetch-depth: 0 bắt buộc cho timestamp):
@@ -35,10 +36,10 @@ read_meta() {
   [ -n "$CLINE" ] || { echo ""; return; }
   LV=$(head -10 "$1" | grep -i '^last_verified:' | head -1 | sed 's/^[^:]*:[[:space:]]*//')
   TTL=$(head -10 "$1" | grep -i '^ttl_days:' | head -1 | sed 's/^[^:]*:[[:space:]]*//')
-  LV_TS=$(date -d "$LV" +%s 2>/dev/null)
+  LV_TS=$(date -d "$LV" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$LV 00:00:00" +%s 2>/dev/null)
   if [ -z "$LV_TS" ]; then
     LV_TS=0
-    echo "WARN: khong parse duoc last_verified '$LV' trong $1 — can GNU date (macOS: brew install coreutils, dung gdate). Doc se bi coi la SUSPECT." >&2
+    echo "WARN: khong parse duoc last_verified '$LV' trong $1 (dinh dang YYYY-MM-DD). Doc se bi coi la SUSPECT." >&2
   fi
   PATHS=$(echo "$CLINE" | sed 's/^[Cc]overs:[[:space:]]*//; s/[[:space:]]*,[[:space:]]*/,/g; s/^[[:space:]]*//; s/[[:space:]]*$//')
   echo "$PATHS|$LV_TS|${TTL:-365}"
@@ -68,7 +69,7 @@ doc_state() {
         CFILES=$(git show --name-only --format= "$DOC_COMMIT" 2>/dev/null)
         for p in $PATHS; do
           [ -n "$p" ] || continue
-          H=$(echo "$CFILES" | while read -r c; do case "$c" in "$p"|"$p"/*) echo 1; break;; esac; done)
+          H=$(echo "$CFILES" | while read -r c; do case "$c" in ("$p"|"$p"/*) echo 1; break;; esac; done)
           [ -n "$H" ] && { ATTEST=1; break; }
         done
       fi
@@ -105,6 +106,10 @@ doc_state() {
   echo "$STATE|$REASON|$LAG"
 }
 
+# sed -i khác cú pháp GNU vs BSD (macOS) → ghi qua file tạm, chạy được cả hai.
+sedi() { _f=$1; shift; sed "$@" "$_f" > "$_f.tmp.$$" && mv "$_f.tmp.$$" "$_f"; }
+# Chèn 1 dòng SAU mỗi dòng khớp regex (thay `sed '/re/a text'` chỉ GNU hiểu).
+append_after() { awk -v re="$2" -v line="$3" '{print} $0 ~ re {print line}' "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"; }
 # Chèn/xóa marker DOC-STATUS trong chính doc. Anchor fallback: ttl_days -> last_verified
 # -> covers (doc cẩu thả frontmatter vẫn phải nhận marker — vòng 9 Bug 3).
 update_marker() {
@@ -117,12 +122,12 @@ update_marker() {
   fi
   HAVE=$(grep -m1 '<!-- DOC-STATUS:' "$1" 2>/dev/null || true)
   [ "$HAVE" = "$WANT" ] && return 0
-  sed -i '/<!-- DOC-STATUS:/d' "$1"
+  sedi "$1" '/<!-- DOC-STATUS:/d'
   if [ "$2" = "SUSPECT" ] || [ "$2" = "ORPHANED" ]; then
     if grep -qi '^ttl_days:' "$1"; then A='^[Tt][Tt][Ll]_days:'
     elif grep -qi '^last_verified:' "$1"; then A='^[Ll]ast_verified:'
     else A='^[Cc]overs:'; fi
-    sed -i "/$A/a <!-- DOC-STATUS: $2 ($(date +%Y-%m-%d)) — $3. DOI CHIEU VOI CODE truoc khi tin. May quan ly dong nay, dung sua tay. -->" "$1"
+    append_after "$1" "$A" "<!-- DOC-STATUS: $2 ($(date +%Y-%m-%d)) — $3. DOI CHIEU VOI CODE truoc khi tin. May quan ly dong nay, dung sua tay. -->"
   fi
 }
 
@@ -149,7 +154,7 @@ if [ "$1" = "--self-test" ]; then
   # re-verify commit message hop le (kem dong re-verified comment — flow chuan, vi bump
   # date cung ngay la no-op khong co gi de stage) -> VERIFIED
   sleep 1
-  sed -i "/^ttl_days:/a <!-- re-verified: $(date '+%Y-%m-%d %H:%M') - calcX van khop -->" docs/app-map/01-t.md
+  append_after docs/app-map/01-t.md '^ttl_days:' "<!-- re-verified: $(date '+%Y-%m-%d %H:%M') - calcX van khop -->"
   git add docs/app-map/01-t.md; git commit -qm "re-verify(01-t): calcX van khop"
   ST=$(doc_state docs/app-map/01-t.md 2>/dev/null | cut -d'|' -f1)
   [ "$ST" = "VERIFIED" ] && echo "PASS: re-verify(...) commit -> VERIFIED" || { echo "FAIL: re-verify khong duoc cong nhan ('$ST')"; RC=1; }
@@ -159,7 +164,7 @@ if [ "$1" = "--self-test" ]; then
   git add -A; git commit -qm "re-verify(01-t): them ref helperZ"
   ST=$(doc_state docs/app-map/01-t.md 2>/dev/null | cut -d'|' -f1)
   [ "$ST" = "VERIFIED" ] && echo "PASS: symbol song ngoai covers -> van VERIFIED" || { echo "FAIL: SUSPECT oan voi shared util ('$ST')"; RC=1; }
-  sed -i 's/calcX/deadFn/' docs/app-map/01-t.md && git add -A && git commit -qm "re-verify(01-t): doi ref"
+  sedi docs/app-map/01-t.md 's/calcX/deadFn/' && git add -A && git commit -qm "re-verify(01-t): doi ref"
   ST=$(doc_state docs/app-map/01-t.md 2>/dev/null)
   echo "$ST" | grep -q "symbol 'deadFn()'" && echo "PASS: symbol chet (toan repo) -> SUSPECT" || { echo "FAIL: symbol chet khong bi bat ($ST)"; RC=1; }
   # Symbol chết phải làm --ci FAIL (detector có răng — vòng 10)
@@ -169,9 +174,9 @@ if [ "$1" = "--self-test" ]; then
   FAST=1; STF=$(doc_state docs/app-map/01-t.md 2>/dev/null | cut -d'|' -f1); FAST=0
   [ "$STF" = "VERIFIED" ] && echo "PASS: --fast skip symbol scan" || { echo "FAIL: --fast van scan symbol ('$STF')"; RC=1; }
   # Contract test matcher (CÙNG bảng với hook --self-test — hợp đồng chung của matcher 2 nơi)
-  M=$(echo "src/lib-utils/a.ts" | while read -r c; do case "$c" in "src/lib"|"src/lib"/*) echo 1;; esac; done)
+  M=$(echo "src/lib-utils/a.ts" | while read -r c; do case "$c" in ("src/lib"|"src/lib"/*) echo 1;; esac; done)
   [ -z "$M" ] && echo "PASS: matcher contract — sibling KHONG khop" || { echo "FAIL: matcher overmatch sibling"; RC=1; }
-  M=$(echo "src/lib/x.ts" | while read -r c; do case "$c" in "src/lib"|"src/lib"/*) echo 1;; esac; done)
+  M=$(echo "src/lib/x.ts" | while read -r c; do case "$c" in ("src/lib"|"src/lib"/*) echo 1;; esac; done)
   [ -n "$M" ] && echo "PASS: matcher contract — child khop" || { echo "FAIL: matcher miss child"; RC=1; }
   git rm -rq src/a && git commit -qm c4
   ST=$(doc_state docs/app-map/01-t.md 2>/dev/null | cut -d'|' -f1)
@@ -289,7 +294,7 @@ echo "--- Broken cross-ref ---"
 BROKEN=$(git -c core.quotepath=false ls-files 'docs/app-map/*.md' 'docs/app-map/**/*.md' 2>/dev/null | sort -u | while read -r f; do
   DIR=$(dirname "$f")
   grep -oE '\]\(([^)#]+\.md)' "$f" | sed 's/](//' | while read -r link; do
-    case "$link" in http*|/*) continue ;; esac
+    case "$link" in (http*|/*) continue ;; esac
     [ -f "$DIR/$link" ] || echo "  $f -> $link (khong ton tai)"
   done
 done)
