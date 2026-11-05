@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { spawnSync, spawn } = require('child_process');
 
 const PKG_ROOT = path.join(__dirname, '..');
@@ -56,8 +57,95 @@ function readVersionMarker(file) {
   } catch { return null; }
 }
 
-function stampVersion(content) {
-  return content.replace(/(ai-simple-version:\s*)[0-9][0-9a-zA-Z.\-]*/, `$1${PKG.version}`);
+function stampVersion(content, version = PKG.version) {
+  return content.replace(/(ai-simple-version:\s*)[0-9][0-9a-zA-Z.\-]*/, `$1${version}`);
+}
+
+// ---------- update GỘP 3 CHIỀU (v1.25.0) ----------
+// Bug thật (ForFish 2026-11-05): `update` GHI ĐÈ hook/command bằng template mới, chỉ cứu vài dòng CONFIG
+// → xoá gate riêng project tự thêm (1d-q, 1d-r…) + câu chữ riêng trong .claude/commands. Sửa gốc:
+// lưu BẢN GỐC (template đã stamp) lúc init/update vào `.ai-simple/base/<dest>` (commit cùng repo để máy
+// khác cũng có), lần sau gộp 3 chiều ours/base/new bằng `git merge-file`. Không có bản gốc → dựng lại từ
+// lịch sử git của package (repo nguồn); vẫn không có → KHÔNG ghi đè, để `<dest>.ai-simple-new` (--force = hành vi cũ).
+const BASE_DIR = path.join('.ai-simple', 'base');
+const UPDATE_MANAGED = new Set(['.githooks/pre-commit', 'scripts/doc-health-report.sh', '.claude/commands/audit.md', '.claude/commands/fl.md', '.claude/commands/learn.md', '.github/workflows/doc-health.yml']);
+const normEol = (s) => s.replace(/\r\n/g, '\n');
+function writeBase(dest, raw) {
+  const p = path.join(BASE_DIR, dest);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, normEol(raw), 'utf8');
+}
+function applyPreserved(content, preserved) {
+  for (const [k, line] of Object.entries(preserved)) content = content.replace(new RegExp(`^${k}.*$`, 'm'), () => line);
+  return content;
+}
+// Bản template ĐÚNG lúc phát hành `version`: commit CŨ NHẤT có package.json.version === version (commit
+// phát hành). Chọn commit cũ nhất là cố ý: nếu bản cài thực ra lấy từ commit muộn hơn, phần chênh hiện ra
+// như "hai bên cùng thêm" → gộp sạch; chọn commit muộn thì sửa upstream bản cài THIẾU sẽ bị gộp thành "xoá".
+function reconstructBase(tplRel, version, root = PKG_ROOT) {
+  if (!version) return null;
+  const top = git(['rev-parse', '--show-toplevel'], { cwd: root });
+  if (top.status !== 0) return null;
+  try { if (fs.realpathSync(top.stdout) !== fs.realpathSync(root)) return null; } catch { return null; } // package nằm trong repo KHÁC (node_modules) → không dùng lịch sử của repo đó
+  const log = git(['log', '--format=%H', '--', 'package.json'], { cwd: root });
+  if (log.status !== 0) return null;
+  let hit = null;
+  for (const c of log.stdout.split('\n').filter(Boolean).slice(0, 400)) {
+    const pj = git(['show', `${c}:package.json`], { cwd: root });
+    try { if (JSON.parse(pj.stdout).version === version) hit = c; else if (hit) break; } catch { /* commit hỏng package.json → bỏ qua */ }
+  }
+  if (!hit) return null;
+  const t = spawnSync('git', ['show', `${hit}:${tplRel}`], { encoding: 'utf8', cwd: root });
+  return t.status === 0 ? stampVersion(t.stdout, version) : null;
+}
+// Trả { state, note }: SAME | NEW | OK (bản cài chưa sửa tay → thay thẳng) | MERGED (giữ sửa tay) |
+// CONFLICT (không ghi; để <dest>.ai-simple-merge) | HELD (thiếu bản gốc; để <dest>.ai-simple-new) | FORCED.
+function mergeManaged(dest, nextRawIn, { keys = [], tplRel = null, oldVersion = null, force = false, root = PKG_ROOT } = {}) {
+  const nextRaw = normEol(nextRawIn);
+  const write = (content) => {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, content, 'utf8');
+    try { fs.chmodSync(dest, 0o755); } catch { /* Windows */ }
+  };
+  if (!fs.existsSync(dest)) { write(nextRaw); writeBase(dest, nextRaw); return { state: 'NEW', note: 'cài mới' }; }
+  const ours = normEol(fs.readFileSync(dest, 'utf8'));
+  // Lần trước CONFLICT: user đã `mv <dest>.ai-simple-merge <dest>` và gỡ hết dấu xung đột → chốt bản gốc chờ
+  // (bản mới của lần đó) thành bản gốc. Còn file .ai-simple-merge hoặc còn dấu <<<<<<< → coi như CHƯA giải.
+  const pend = path.join(BASE_DIR, dest) + '.pending';
+  if (fs.existsSync(pend) && !fs.existsSync(dest + '.ai-simple-merge') && !/^(<{7}|>{7}) /m.test(ours)) {
+    writeBase(dest, fs.readFileSync(pend, 'utf8')); fs.rmSync(pend, { force: true });
+  }
+  const preserved = {};
+  for (const k of keys) { const m = ours.match(new RegExp(`^${k}.*$`, 'm')); if (m) preserved[k] = m[0]; }
+  const next = applyPreserved(nextRaw, preserved);
+  const cfg = keys.length ? ` (config giữ: ${Object.keys(preserved).length}/${keys.length})` : '';
+  if (ours === next) { writeBase(dest, nextRaw); return { state: 'SAME', note: 'đã khớp bản mới' }; }
+  const bp = path.join(BASE_DIR, dest);
+  let baseRaw = fs.existsSync(bp) ? normEol(fs.readFileSync(bp, 'utf8')) : null;
+  let baseSrc = 'bản gốc đã lưu';
+  if (!baseRaw && tplRel) { baseRaw = reconstructBase(tplRel, readVersionMarker(dest) || oldVersion, root); baseSrc = 'bản gốc dựng từ lịch sử git package'; }
+  if (baseRaw) baseRaw = normEol(baseRaw);
+  if (!baseRaw) {
+    if (force) { fs.copyFileSync(dest, dest + '.bak'); write(next); writeBase(dest, nextRaw); return { state: 'FORCED', note: `GHI ĐÈ theo --force${cfg}; bản cũ: ${dest}.bak` }; }
+    fs.writeFileSync(dest + '.ai-simple-new', next, 'utf8');
+    return { state: 'HELD', note: `KHÔNG ghi đè — thiếu bản gốc để gộp, có thể mất phần project tự sửa. Bản mới: ${dest}.ai-simple-new (so tay rồi chép), hoặc chạy lại với --force để ghi đè (giữ .bak)` };
+  }
+  const base = applyPreserved(baseRaw, preserved);
+  if (ours === base) { fs.copyFileSync(dest, dest + '.bak'); write(next); writeBase(dest, nextRaw); return { state: 'OK', note: `chưa sửa tay → thay bản mới${cfg}; bản cũ: ${dest}.bak` }; }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-merge-'));
+  try {
+    const [fo, fb, fn] = ['ours', 'base', 'new'].map((n) => path.join(tmp, n));
+    fs.writeFileSync(fo, ours); fs.writeFileSync(fb, base); fs.writeFileSync(fn, next);
+    const r = spawnSync('git', ['merge-file', '-p', '-L', `${dest} (đang cài)`, '-L', 'bản gốc', '-L', `ai-simple v${PKG.version}`, fo, fb, fn], { encoding: 'utf8' });
+    if (r.status === 0) { fs.copyFileSync(dest, dest + '.bak'); write(r.stdout); writeBase(dest, nextRaw); return { state: 'MERGED', note: `gộp 3 chiều, GIỮ phần project tự sửa (${baseSrc})${cfg}; bản cũ: ${dest}.bak` }; }
+    if (r.status > 0) {
+      if (fs.existsSync(dest + '.ai-simple-merge')) return { state: 'CONFLICT', note: `đang chờ giải — ${dest}.ai-simple-merge đã có (KHÔNG ghi đè phần anh đang sửa dở). Giải xong: \`mv ${dest}.ai-simple-merge ${dest}\` rồi chạy lại update` };
+      fs.writeFileSync(dest + '.ai-simple-merge', r.stdout, 'utf8');
+      fs.mkdirSync(path.dirname(pend), { recursive: true }); fs.writeFileSync(pend, nextRaw, 'utf8');
+      return { state: 'CONFLICT', note: `${r.status} chỗ xung đột — KHÔNG ghi. Sửa các khối <<<<<<< trong ${dest}.ai-simple-merge, rồi \`mv ${dest}.ai-simple-merge ${dest}\` và chạy lại update (lần đó mới chốt bản gốc)` };
+    }
+    return { state: 'CONFLICT', note: `git merge-file lỗi: ${(r.stderr || '').trim()}` };
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
 
 // ---------- update channel (kênh báo bản mới — 2 nguồn vì README document 2 đường cài) ----------
@@ -300,6 +388,8 @@ function cmdInit(args) {
     const transform = f.stackable ? STACKS[stack] : null;
     const r = copyTemplate(f.tpl.includes('/') ? path.join(PKG_ROOT, f.tpl) : TPL(f.tpl), f.dest, { force: !!args.force, transform });
     console.log(`  ${r.action === 'OK' ? 'OK   ' : 'SKIP '} ${f.dest}${r.action.startsWith('SKIP') ? ' — đã tồn tại' : ''}`);
+    // v1.25.0 — lưu bản gốc cho file `update` quản, để lần update sau gộp 3 chiều (không xoá sửa tay).
+    if (r.action === 'OK' && UPDATE_MANAGED.has(f.dest)) writeBase(f.dest, stampVersion(fs.readFileSync(TPL(f.tpl), 'utf8')));
   }
 
   const hp = git(['config', 'core.hooksPath', '.githooks']);
@@ -493,33 +583,23 @@ function cmdUpdate(args) {
   // nhưng vẫn backup .bak trước khi ghi (user có thể đã sửa tay).
   const CMD_SRC = { '.claude/commands/audit.md': 'audit.command.md.template', '.claude/commands/fl.md': 'fl.command.md.template', '.claude/commands/learn.md': 'learn.command.md.template' };
 
-  for (const [dest, keys] of Object.entries(PRESERVE)) {
-    const preserved = {};
-    if (fs.existsSync(dest)) {
-      const old = fs.readFileSync(dest, 'utf8');
-      for (const k of keys) { const m = old.match(new RegExp(`^${k}.*$`, 'm')); if (m) preserved[k] = m[0]; }
-      fs.copyFileSync(dest, dest + '.bak');
-    }
-    let content = stampVersion(fs.readFileSync(TPL(SRC[dest]), 'utf8'));
-    for (const [k, line] of Object.entries(preserved)) content = content.replace(new RegExp(`^${k}.*$`, 'm'), () => line);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, content, 'utf8');
-    try { fs.chmodSync(dest, 0o755); } catch {}
-    console.log(`  OK    ${dest} → v${PKG.version} (config giữ: ${Object.keys(preserved).length}/${keys.length}; bản cũ: ${dest}.bak)`);
+  // v1.25.0 — GỘP 3 CHIỀU thay vì ghi đè (xem mergeManaged). Hook/report luôn quản; command chỉ khi project
+  // đang dùng; workflow khi đã có hoặc --workflow.
+  const managed = [];
+  for (const [dest, keys] of Object.entries(PRESERVE)) managed.push({ dest, tpl: SRC[dest], keys });
+  for (const [dest, tpl] of Object.entries(CMD_SRC)) if (fs.existsSync(dest)) managed.push({ dest, tpl, keys: [] });
+  if (fs.existsSync('.github/workflows/doc-health.yml') || args.workflow) managed.push({ dest: '.github/workflows/doc-health.yml', tpl: 'doc-health.workflow.yml.template', keys: [] });
+  let held = false;
+  for (const m of managed) {
+    const r = mergeManaged(m.dest, stampVersion(fs.readFileSync(TPL(m.tpl), 'utf8')), { keys: m.keys, tplRel: `templates/${m.tpl}`, oldVersion, force: !!args.force });
+    if (r.state === 'CONFLICT' || r.state === 'HELD') held = true;
+    const tag = { CONFLICT: 'CONFL', HELD: 'HELD ', FORCED: 'FORCE' }[r.state] || 'OK   ';
+    console.log(`  ${tag} ${m.dest} → v${PKG.version}: ${r.note}`);
   }
-  for (const [dest, tpl] of Object.entries(CMD_SRC)) {
-    if (!fs.existsSync(dest)) continue;   // project không dùng command này → không tự thêm
-    const now = fs.readFileSync(dest, 'utf8');
-    const next = stampVersion(fs.readFileSync(TPL(tpl), 'utf8'));
-    if (now.replace(/\r\n/g, '\n') === next.replace(/\r\n/g, '\n')) { console.log(`  OK    ${dest} — đã khớp bản ${PKG.version}`); continue; }
-    fs.copyFileSync(dest, dest + '.bak');
-    fs.writeFileSync(dest, next, 'utf8');
-    console.log(`  OK    ${dest} → v${PKG.version} (văn bản load-bearing; bản cũ: ${dest}.bak)`);
-  }
-  if (fs.existsSync('.github/workflows/doc-health.yml') || args.workflow) {
-    const r = copyTemplate(TPL('doc-health.workflow.yml.template'), '.github/workflows/doc-health.yml', { force: true });
-    console.log(`  OK    ${r.dest}`);
-  }
+  if (held) console.log(`
+  ⚠ Có file CHƯA nâng (HELD/CONFL) — xử lý theo hướng dẫn trên. Nhớ commit thư mục ${BASE_DIR}/ (bản gốc để lần sau gộp được).`);
+  else console.log(`
+  Nhớ commit thư mục ${BASE_DIR}/ cùng các file trên (bản gốc để lần update sau gộp 3 chiều).`);
 
   // Wave 3 — junction-migration trong update (năng lực MỚI; SRC map cũ chỉ refresh 2 file):
   // thay junction/skill giữa lúc session Claude Code đang mở → skill load dở trạng thái trung gian.
@@ -572,7 +652,7 @@ function cmdUpdate(args) {
       } else console.log('\nRE-APPLY: không có — update xong là xong, không phải rà lại gì.');
     }
   }
-  process.exit(failed ? 1 : 0);
+  process.exit(failed || held ? 1 : 0);
 }
 
 function passthrough(scriptArgs) {
@@ -815,6 +895,61 @@ async function cmdSelfTest(args = {}) { // dùng cho `npm test` của chính pac
     }
   }
   if (xcutOk) console.log('PASS cross-cut (cả 3 skill anh em khai security-logic cắt ngang)');
+
+  // v1.25.0 — update GỘP 3 CHIỀU: tái hiện đúng ca ForFish (gate tự thêm bị update xoá) + các ca kề.
+  {
+    const mt = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-upd-'));
+    const cwd0 = process.cwd();
+    const mu = [];
+    const nonGit = path.join(mt, 'pkg'); fs.mkdirSync(nonGit); // root không phải git → reconstruct trả null
+    try {
+      process.chdir(mt);
+      const v = (body, cfg = 'BUDGET=1') => `#!/bin/sh\n# ai-simple-version: 9.9.9\n${cfg}\n${body}\n`;
+      const B = 'a\nb\nc\nd\ne\nf\ng\nh';
+      const read = (f) => fs.readFileSync(f, 'utf8');
+      // 1) ca ForFish: project THÊM gate riêng + upstream sửa chỗ khác → MERGED, giữ cả hai, giữ CONFIG
+      fs.mkdirSync('h', { recursive: true });
+      writeBase('h/x', v(B));
+      fs.writeFileSync('h/x', v(B.replace('b', 'b\nGATE_RIENG_PROJECT'), 'BUDGET=777'));
+      let r = mergeManaged('h/x', v(B.replace('g', 'g_UPSTREAM')), { keys: ['BUDGET='], root: nonGit });
+      mu.push(['gộp: giữ gate project tự thêm + nhận sửa upstream + giữ CONFIG', r.state === 'MERGED' && /GATE_RIENG_PROJECT/.test(read('h/x')) && /g_UPSTREAM/.test(read('h/x')) && /BUDGET=777/.test(read('h/x'))]);
+      mu.push(['gộp: bản gốc được cập nhật sang bản mới', /g_UPSTREAM/.test(read(path.join(BASE_DIR, 'h/x')))]);
+      // 2) chưa sửa tay → thay thẳng
+      writeBase('h/y', v(B)); fs.writeFileSync('h/y', v(B));
+      r = mergeManaged('h/y', v(B + '\nNEW'), { root: nonGit });
+      mu.push(['chưa sửa tay → OK thay bản mới', r.state === 'OK' && /NEW/.test(read('h/y'))]);
+      // 3) xung đột (cùng dòng) → KHÔNG ghi, để .ai-simple-merge
+      writeBase('h/z', v(B)); fs.writeFileSync('h/z', v(B.replace('d', 'd_PROJECT')));
+      r = mergeManaged('h/z', v(B.replace('d', 'd_UPSTREAM')), { root: nonGit });
+      mu.push(['xung đột → CONFLICT, file đang cài GIỮ NGUYÊN', r.state === 'CONFLICT' && /d_PROJECT/.test(read('h/z')) && !/d_UPSTREAM/.test(read('h/z')) && fs.existsSync('h/z.ai-simple-merge')]);
+      fs.appendFileSync('h/z.ai-simple-merge', 'DANG_SUA_DO\n');
+      r = mergeManaged('h/z', v(B.replace('d', 'd_UPSTREAM')), { root: nonGit });
+      mu.push(['chạy lại khi CHƯA giải → vẫn CONFLICT, không chốt gốc oan, không đè file đang sửa dở', r.state === 'CONFLICT' && fs.existsSync(path.join(BASE_DIR, 'h/z.pending')) && /DANG_SUA_DO/.test(read('h/z.ai-simple-merge'))]);
+      fs.writeFileSync('h/z.ai-simple-merge', v(B.replace('d', 'd_PROJECT_DA_GIAI'))); fs.renameSync('h/z.ai-simple-merge', 'h/z');
+      r = mergeManaged('h/z', v(B.replace('d', 'd_UPSTREAM')), { root: nonGit });
+      mu.push(['giải xong (mv .ai-simple-merge) + chạy lại → hết xung đột, giữ bản đã giải', ['MERGED', 'SAME'].includes(r.state) && /d_PROJECT_DA_GIAI/.test(read('h/z')) && !fs.existsSync(path.join(BASE_DIR, 'h/z.pending'))]);
+      // 4) thiếu bản gốc, không dựng lại được → HELD, không ghi đè (đây chính là bug cũ)
+      fs.writeFileSync('h/w', v(B.replace('b', 'b\nGATE_RIENG')));
+      r = mergeManaged('h/w', v(B + '\nNEW'), { tplRel: 'templates/x', oldVersion: '9.9.9', root: nonGit });
+      mu.push(['thiếu bản gốc → HELD, KHÔNG xoá gate riêng', r.state === 'HELD' && /GATE_RIENG/.test(read('h/w')) && fs.existsSync('h/w.ai-simple-new')]);
+      // 5) --force khi thiếu bản gốc → hành vi cũ (ghi đè + .bak)
+      r = mergeManaged('h/w', v(B + '\nNEW'), { force: true, root: nonGit });
+      mu.push(['--force → ghi đè + .bak (đường thoát có chủ đích)', r.state === 'FORCED' && /NEW/.test(read('h/w')) && /GATE_RIENG/.test(read('h/w.bak'))]);
+      // 6) chống-oan: bản cài CRLF trùng nội dung bản mới → SAME, không đụng file
+      fs.writeFileSync('h/c', v(B).replace(/\n/g, '\r\n'));
+      r = mergeManaged('h/c', v(B), { root: nonGit });
+      mu.push(['CRLF trùng nội dung → SAME (không báo khác oan)', r.state === 'SAME' && !fs.existsSync('h/c.bak')]);
+      // 7) file chưa có → cài mới + lưu bản gốc
+      r = mergeManaged('h/n', v(B), { root: nonGit });
+      mu.push(['file chưa có → NEW + có bản gốc', r.state === 'NEW' && fs.existsSync(path.join(BASE_DIR, 'h/n'))]);
+    } catch (e) { mu.push([`update-merge ném lỗi: ${e.message}`, false]); }
+    finally { process.chdir(cwd0); fs.rmSync(mt, { recursive: true, force: true }); }
+    // 8) dựng bản gốc từ lịch sử git — chỉ chạy được ở repo nguồn (tarball không có .git → INFO, không FAIL)
+    const rb = reconstructBase('templates/pre-commit.hook.template', '1.23.0');
+    if (rb === null && git(['rev-parse', '--show-toplevel'], { cwd: PKG_ROOT }).status !== 0) console.log('INFO update-merge: package không nằm trong git → bỏ qua ca dựng bản gốc từ lịch sử');
+    else mu.push(['dựng bản gốc v1.23.0 từ lịch sử git package', !!rb && /ai-simple-version: 1\.23\.0/.test(rb) && !/1\.24 — ky tu bidi/.test(rb)]);
+    for (const [n, ok] of mu) { if (!ok) failed = true; console.log(`${ok ? 'PASS' : 'FAIL'} update-merge: ${n}`); }
+  }
 
   // Update-channel fixtures (YELLOW — đổi hành vi doctor/update): fixture chống-oan là bắt buộc,
   // ca quan trọng nhất: OFFLINE KHÔNG ĐƯỢC THROW/FAIL (bài học design-verify BLOCK oan dogfood).

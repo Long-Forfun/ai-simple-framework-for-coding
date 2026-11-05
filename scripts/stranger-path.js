@@ -134,6 +134,13 @@ try {
   const after = fs.existsSync(hookP) ? fs.readFileSync(hookP, 'utf8') : '';
   check('update GIỮ CONFIG người dùng đã sửa', upd.status === 0 && /CLAUDE_MD_CHAR_BUDGET=13579/.test(after), /13579/.test(after) ? '' : 'CONFIG bị đè khi update');
 
+  // 9) v1.25.0 — gate project TỰ THÊM vào hook phải sống qua `update` (bug ForFish: update ghi đè xoá 1d-q/1d-r).
+  fs.writeFileSync(hookP, fs.readFileSync(hookP, 'utf8').replace(/^# ── 2\. Root CLAUDE\.md token budget.*$/m, (l) => '# GATE_RIENG_PROJECT_STRANGER\n' + l));
+  git(['add', '-A'], proj); commit('user them gate rieng');
+  const upd2 = run('node', [cli, 'update'], { cwd: proj });
+  const after2 = fs.existsSync(hookP) ? fs.readFileSync(hookP, 'utf8') : '';
+  check('update GIỮ gate project tự thêm (gộp 3 chiều, có bản gốc từ init)', upd2.status === 0 && /GATE_RIENG_PROJECT_STRANGER/.test(after2) && fs.existsSync(path.join(proj, '.ai-simple/base/.githooks/pre-commit')), /GATE_RIENG/.test(after2) ? `exit=${upd2.status}` : 'gate riêng bị update xoá');
+
 } catch (e) {
   results.push(`FAIL fatal — ${e.message}`);
 } finally {

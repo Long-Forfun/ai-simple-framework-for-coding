@@ -1,5 +1,5 @@
 #!/bin/sh
-# ai-simple-version: 1.24.0
+# ai-simple-version: 1.25.0
 # pre-commit — Automated enforcement (nguyên tắc 08 / principle 08)
 #
 # CHẠY ĐƯỢC NGAY với default Supabase + Next.js. Sửa 3 biến CẤU HÌNH bên dưới cho project khác.

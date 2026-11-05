@@ -4,6 +4,33 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.25.0 — 2026-11-05 (`update` gộp 3 chiều — hết xoá gate/câu chữ project tự thêm)
+
+Nguồn: lần nâng ForFish lên v1.24.0 — `update` GHI ĐÈ `.githooks/pre-commit` bằng template, chỉ cứu 5 dòng
+CONFIG, nên xoá sạch gate ForFish tự thêm (1d-q nút X, 1d-r màu hex, bỏ DOC-STATUS 25/10) và câu chữ riêng trong
+`.claude/commands/{audit,fl}.md`. Phải khôi phục `.bak` rồi vá tay.
+
+- **Gộp 3 chiều thay vì ghi đè** (`mergeManaged` trong `bin/ai-simple.js`): `init`/`update` lưu bản gốc (template
+  đã stamp) vào `.ai-simple/base/<file>` — commit cùng repo để máy khác cũng có. Lần sau `git merge-file` gộp
+  bản-đang-cài / bản-gốc / bản-mới: phần project tự sửa ở lại, sửa upstream vào. Áp cho hook, doc-health-report,
+  `.claude/commands/{audit,fl,learn}.md`, workflow doc-health.
+- **Xung đột → KHÔNG ghi**: để `<file>.ai-simple-merge` kèm dấu `<<<<<<<`, `update` thoát 1. Giải xong: `mv <file>.ai-simple-merge <file>` rồi chạy lại `update` — lần đó mới chốt bản gốc mới (lưu chờ ở `.ai-simple/base/<file>.pending`). Chạy lại khi chưa giải: không chốt, không đè file đang sửa dở.
+- **Thiếu bản gốc** (project cài trước v1.25): dựng lại từ lịch sử git của package (commit phát hành CŨ NHẤT có
+  đúng version đang cài — chọn cũ nhất để sửa upstream mà bản cài thiếu không bị gộp thành "xoá"). Không dựng
+  được (cài từ npm) → **HELD**: không ghi đè, để `<file>.ai-simple-new`; `--force` = hành vi cũ (ghi đè + `.bak`).
+- Fixture `update-merge` trong `npm test` (11 ca, gồm 2 ca giải-xung-đột); stranger-path thêm promise 13: gate tự thêm sống qua `update` trên bản cài từ tarball: ca ForFish (gate riêng + sửa upstream + CONFIG cùng sống) · chưa
+  sửa tay → thay thẳng · xung đột không ghi · thiếu gốc → HELD · `--force` · CRLF không báo khác oan · file mới ·
+  dựng gốc v1.23.0 từ lịch sử.
+- Đo trên bản sao ForFish v1.23.0: hook gộp ra **trùng từng byte** với bản vá tay v1.24.0 (giữ 1d-q/1d-r);
+  `audit.md`/`fl.md`/workflow giữ câu chữ ForFish; `doc-health-report.sh` báo 1 xung đột THẬT (ForFish bỏ
+  `update_marker`, upstream sửa đúng hàm đó) và không ghi.
+
+**Assumptions** (YELLOW — đổi hành vi `update`): `update` thoát 1 khi còn file HELD/CONFLICT — để CI/người chạy
+thấy việc chưa xong thay vì tưởng đã nâng.
+
+**RE-APPLY**: commit thư mục `.ai-simple/base/` mà `update` vừa tạo. Có file báo `CONFL`/`HELD` thì xử lý theo
+hướng dẫn in ra (sửa `.ai-simple-merge` / so `.ai-simple-new`) rồi chạy lại `update`.
+
 ## v1.24.0 — 2026-11-05 (siết chống prompt-injection: mở scope, ký tự ẩn, fence không còn im lặng, luật runtime)
 
 Nguồn: tự rà "repo đã có protect prompt injection chưa" — lint 1e chỉ quét root `CLAUDE.md` + app-map + skills +

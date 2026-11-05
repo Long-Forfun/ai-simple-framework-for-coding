@@ -89,7 +89,7 @@ npx ai-simple init                  # cài hook + doc-health + templates + workf
 npx ai-simple init --profile tiny   # project < 10 file: chỉ CLAUDE.md + risk tier, chi phí ≈ 0
 npx ai-simple init --stack prisma   # default: supabase; còn có: custom
 npx ai-simple doctor                # khám setup: version drift, self-tests, budget, covers + báo bản mới (npm/GitHub, offline bỏ qua)
-npx ai-simple update                # nâng hook/script lên bản mới, GIỮ NGUYÊN config (backup .bak) + in checklist RE-APPLY
+npx ai-simple update                # nâng hook/script/command lên bản mới bằng GỘP 3 CHIỀU — giữ config + gate/câu chữ project tự thêm (backup .bak; xung đột → không ghi, để .ai-simple-merge) + in checklist RE-APPLY
 npx ai-simple doc-health --ci       # gate fail PR; doc-status: regenerate trạng thái doc
 npx ai-simple parallel plan|claim|ready|merge|recover   # ≥ 2 session song song (nguyên tắc 13)
 ```
