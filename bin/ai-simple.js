@@ -103,9 +103,11 @@ function reconstructBase(tplRel, version, root = PKG_ROOT) {
 function mergeManaged(dest, nextRawIn, { keys = [], tplRel = null, oldVersion = null, force = false, root = PKG_ROOT } = {}) {
   const nextRaw = normEol(nextRawIn);
   const write = (content) => {
+    // GIỮ quyền file cũ (đo trên ForFish: chmod 755 vô điều kiện làm .md/.yml hiện "đổi mode" trong git).
+    const mode = fs.existsSync(dest) ? fs.statSync(dest).mode & 0o777 : (content.startsWith('#!') ? 0o755 : 0o644);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, content, 'utf8');
-    try { fs.chmodSync(dest, 0o755); } catch { /* Windows */ }
+    try { fs.chmodSync(dest, mode); } catch { /* Windows */ }
   };
   if (!fs.existsSync(dest)) { write(nextRaw); writeBase(dest, nextRaw); return { state: 'NEW', note: 'cài mới' }; }
   const ours = normEol(fs.readFileSync(dest, 'utf8'));
@@ -137,6 +139,7 @@ function mergeManaged(dest, nextRawIn, { keys = [], tplRel = null, oldVersion = 
     const [fo, fb, fn] = ['ours', 'base', 'new'].map((n) => path.join(tmp, n));
     fs.writeFileSync(fo, ours); fs.writeFileSync(fb, base); fs.writeFileSync(fn, next);
     const r = spawnSync('git', ['merge-file', '-p', '-L', `${dest} (đang cài)`, '-L', 'bản gốc', '-L', `ai-simple v${PKG.version}`, fo, fb, fn], { encoding: 'utf8' });
+    if (r.status === 0 && r.stdout === ours) { writeBase(dest, nextRaw); return { state: 'SAME', note: `gộp xong KHÔNG đổi gì (bản mới chỉ khác ở chỗ project đã tự sửa; ${baseSrc})` }; }
     if (r.status === 0) { fs.copyFileSync(dest, dest + '.bak'); write(r.stdout); writeBase(dest, nextRaw); return { state: 'MERGED', note: `gộp 3 chiều, GIỮ phần project tự sửa (${baseSrc})${cfg}; bản cũ: ${dest}.bak` }; }
     if (r.status > 0) {
       if (fs.existsSync(dest + '.ai-simple-merge')) return { state: 'CONFLICT', note: `đang chờ giải — ${dest}.ai-simple-merge đã có (KHÔNG ghi đè phần anh đang sửa dở). Giải xong: \`mv ${dest}.ai-simple-merge ${dest}\` rồi chạy lại update` };
@@ -942,6 +945,10 @@ async function cmdSelfTest(args = {}) { // dùng cho `npm test` của chính pac
       // 7) file chưa có → cài mới + lưu bản gốc
       r = mergeManaged('h/n', v(B), { root: nonGit });
       mu.push(['file chưa có → NEW + có bản gốc', r.state === 'NEW' && fs.existsSync(path.join(BASE_DIR, 'h/n'))]);
+      // 8) quyền file: .md 644 không bị nâng thành 755 khi gộp (git sẽ báo đổi mode oan)
+      fs.writeFileSync('h/m.md', 'LOCAL\na\nb\nc\nd\n'); fs.chmodSync('h/m.md', 0o644); writeBase('h/m.md', 'a\nb\nc\nd\n');
+      r = mergeManaged('h/m.md', 'a\nb\nc\nd\nUP\n', { root: nonGit });
+      mu.push(['gộp giữ quyền file cũ (.md 644 không thành 755)', r.state === 'MERGED' && (process.platform === 'win32' || (fs.statSync('h/m.md').mode & 0o111) === 0)]);
     } catch (e) { mu.push([`update-merge ném lỗi: ${e.message}`, false]); }
     finally { process.chdir(cwd0); fs.rmSync(mt, { recursive: true, force: true }); }
     // 8) dựng bản gốc từ lịch sử git — chỉ chạy được ở repo nguồn (tarball không có .git → INFO, không FAIL)
