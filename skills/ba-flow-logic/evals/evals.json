@@ -56,6 +56,34 @@
       "prompt": "Làm BA cho tính năng đặt lịch hẹn: khách đặt, lễ tân xác nhận. Xuất ba-spec.",
       "expected_output": "ba-spec sinh ra phải: có frontmatter covers/last_verified/ttl_days + 'Load khi'; mỗi nghiệp vụ có owner-user; mỗi AC dạng G/W/T có `Test:` (e2e cho flow đặt-xác nhận) + `Assert` ĐỊNH LƯỢNG (vd status==\"đã xác nhận\", count slot>=1); không AC nào chứa từ UI. Chạy `bash ba-verify.sh` trên file output phải PASS exit 0. Nếu thiếu Test/Assert hoặc 0 AC → cổng BLOCK, coi như chưa xong.",
       "files": []
+    },
+    {
+      "id": 8,
+      "eval_name": "g2-roles-from-money-and-liability",
+      "prompt": "App cho ngư dân: thêm vai Thu mua, Đại lý, Chủ tàu, Thuyền viên. Người dùng tự chọn vai lúc đăng ký và đổi khi nào cũng được cho linh hoạt. Viết ba-spec.",
+      "expected_output": "KHÔNG chép nguyên \"tự chọn + đổi tự do\". Áp G2: mỗi vai trả lời ai trả tiền / ai chịu trách nhiệm tài sản-pháp lý / ai bảo lãnh danh tính. Vai đặc quyền (Thu mua, Đại lý) do nhân viên DUYỆT, không tự chọn; vai đã chọn không đổi tự do (dữ liệu rối); quyền xem giám sát tàu chỉ thuộc chủ tàu, không phải thuyền viên. Điểm lệch so với yêu cầu đưa lên §0 Quyết định cần chủ dự án (≤7 dòng). Án lệ ForFish fbfac1b6→5b5ba990/09506094.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "eval_name": "g4-null-vs-zero-and-count-unit",
+      "prompt": "Làm BA cho bảng chấm điểm tỉnh: tổng số vụ vi phạm, số tàu kiểm tra, tiền phạt; tỉnh nào chưa nhập thì coi như 0.",
+      "expected_output": "Có §Từ điển đại lượng đủ 6 ô cho từng con số: đơn vị đếm (vụ chứ không phải dòng; tàu chứ không phải lượt), kỳ (trong kỳ/luỹ kế, giờ VN), nguồn, NULL ≠ 0 (từ chối \"coi như 0\": chưa nhập hiển thị \"chưa khai\", không cộng như 0, không trừ điểm vì ô hệ thống tự điền 0), khoá chống đếm trùng (hồ sơ mang sang), đơn vị tiền (đồng, không nghìn). Có ≥1 AC chạy trên số liệu mẫu cụ thể. Điểm \"coi như 0\" lệch yêu cầu → §0. Án lệ IUU 51f403a/a14f6ec/05a6a15/3b33fba.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "eval_name": "g5-ambiguous-block-defaults-to-warn",
+      "prompt": "Khi thu hoạch mà thuốc chưa hết thời gian ngưng thì xử lý sao cũng được, BA tự quyết đi.",
+      "expected_output": "\"Tự quyết\" KHÔNG có nghĩa tự chốt luật nặng. Áp G5: mặc định NHẸ + đảo ngược được = CẢNH BÁO + ghi nhận, KHÔNG chặn; ghi vào §0 Quyết định cần chủ dự án là điểm chờ chốt. Không viết \"quyết định BA: chặn cứng\". Án lệ AMS spec 19 NV3 (chặn → chủ dự án đổi chỉ cảnh báo).",
+      "files": []
+    },
+    {
+      "id": 11,
+      "eval_name": "g1-no-imagined-persona",
+      "prompt": "Viết ba-spec cho app tra cứu thời tiết biển, người dùng là ngư dân.",
+      "expected_output": "User registry mô tả BỐI CẢNH QUAN SÁT ĐƯỢC kèm nhãn nguồn (thiết bị, online/offline, app đang dùng hằng ngày), KHÔNG nhân khẩu học tưởng tượng kiểu \"40–60 tuổi, ít rành công nghệ, tay ướt\". Không sinh luật chữ to/nút to (đó là design, theo mặc định nền tảng). Mọi dòng không có nguồn gắn [GIẢ ĐỊNH] và không thành rule/test. Spec có dấu spec-format 2 + §0 + Từ vựng + Từ điển đại lượng + Sổ đã chốt, ba-verify PASS. Án lệ SDMap 9f34159c.",
+      "files": []
     }
   ]
 }

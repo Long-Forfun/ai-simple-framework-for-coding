@@ -4,6 +4,44 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.26.0 — 2026-11-09 (BA + UI/UX v2 — viết lại từ án lệ 8 repo, hết "đủ mục mà vẫn sai")
+
+Nguồn: rà ~6.000 commit của ForFish, SDMap, IUU-REPORT, mkn-3, AMS---Aqua, AI-Assistant, SHT-CRM, forlife-web.
+Đọc khoảng 80 commit sửa BA/UI và toàn bộ ba-spec/design-spec. Án lệ đầy đủ: `docs/adr/003-an-le-ba-ui-tu-lich-su-commit.md`.
+
+Phát hiện:
+- Lỗi thật **không** đến từ việc thiếu mục. Nó đến từ chỗ AI **lấp chỗ trống bằng đoán mò** rồi viết thành luật:
+  - persona "40–60 tuổi" đẻ ra luật chữ to sống 4 tháng;
+  - bịa vai tự chọn, đổi tự do;
+  - tự chốt luật chặn/xoá;
+  - null bị tính là 0, đếm trùng, nhầm lượt với tàu;
+  - thêm lọc và số đếm không ai đòi;
+  - chế tương tác thay vì chép mẫu quen;
+  - lộ uuid/enum.
+- Spec thì thành nhật ký sửa lỗi: 122–214 comment `re-verified`, file 3.782 dòng, AC trùng ID.
+
+Thay đổi:
+- **`ba-flow-logic` v2**: viết lại SKILL.
+  - 7 lỗi gốc G1–G7: nguồn sự thật, vai theo tiền–trách nhiệm–bảo lãnh, truy nguồn, Từ điển đại lượng 6 ô,
+    mặc định nhẹ cho chỗ mơ hồ, Từ vựng chuẩn, spec ngắn có §0 ≤7 dòng.
+  - Pipeline mới bắt đầu bằng **Gom sự thật**.
+  - Team-agent: bỏ cách Optimizer tự chấm, thêm **Red-Team BA** hỏi "ai đòi? lấy từ đâu?".
+  - `references/06` mới. Template ba-spec **format 2**.
+- **`ui-design-logic`**: thêm §0b, 8 lỗi gốc của UI (G1/G3/G4/G5/G10/G11/G12/G13) và Sổ đã chốt.
+  - Pipeline bước 0 đổi thành Sự thật (đọc sổ, đọc màn có sẵn để tái dùng).
+  - QA soi theo §0b.
+  - Template design-spec format 2: cột Mẫu tham chiếu, Điều hướng, Không làm, Sổ đã chốt.
+- **`ui-ux-triage` §3b**: đọc Sổ đã chốt trước khi fix. Fix theo lời chủ dự án thì ghi sổ kèm thứ canh. Bảng phân loại theo G.
+- **Gate** (YELLOW — không chặn oan spec cũ, đã đo trên 7 repo: số BLOCK trước và sau **bằng nhau** ở mọi repo):
+  - `ba-verify` / `design-verify` WARN khi spec có >20 comment `re-verified`. `ba-verify` WARN thêm khi heading Flow trùng ID.
+  - Spec mang dấu `spec-format: 2` (chỉ template mới có) bị BLOCK nếu thiếu mục mới.
+  - `ba-verify` BLOCK nếu §0 dài quá 7 dòng.
+  - Fixture chống oan: spec cũ không có dấu thì không bị luật mới BLOCK.
+- **Eval**: thêm 8 case từ ca thật (ba-flow 8→12, ui-design 5→9). Kết quả A/B đã ghi chỉ phủ 34 case cũ; 8 case mới chưa có vòng đo.
+
+**Assumptions** (YELLOW): format 2 là opt-in qua dấu trong template. Không ép migrate spec cũ, vì migrate là việc của từng project.
+**RE-APPLY**: spec mới tạo từ `skills/ba-flow-logic/templates/ba-spec.md.template` / `skills/ui-design-logic/design-spec.md.template` (format 2). Spec cũ khi sửa lớn nên chuyển sang format 2: thêm §0, Từ vựng, Từ điển đại lượng, Sổ đã chốt; xoá tường `re-verified`.
+
 ## v1.25.0 — 2026-11-05 (`update` gộp 3 chiều — hết xoá gate/câu chữ project tự thêm)
 
 Nguồn: lần nâng ForFish lên v1.24.0 — `update` GHI ĐÈ `.githooks/pre-commit` bằng template, chỉ cứu 5 dòng

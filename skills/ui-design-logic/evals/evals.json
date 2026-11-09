@@ -20,7 +20,9 @@
       "eval_name": "diagnose-ugly-ui",
       "prompt": "Trang dashboard của tôi nhìn rất rối và xấu, sửa giúp tôi. Code ở file dashboard.tsx tôi gửi kèm.",
       "expected_output": "Chạy diagnose theo 06: screenshot hiện trạng trước, liệt kê vi phạm phân cấp BLOCK/MAJOR/MINOR (spacing ngoài thang, title lệch ngữ pháp, 2 primary button, vượt density budget...), sửa theo thứ tự hình học trước màu sau, screenshot before/after. KHÔNG nhảy vào đổi màu/đổi font đầu tiên.",
-      "files": ["fixtures/dashboard.tsx"]
+      "files": [
+        "fixtures/dashboard.tsx"
+      ]
     },
     {
       "id": 3,
@@ -34,6 +36,34 @@
       "eval_name": "redesign-admin-4case-routing",
       "prompt": "Cái dashboard admin quản lý kho của tôi nhìn như AI làm ấy, redesign lại cho giống app thật đi, chức năng đang chạy đúng rồi đừng phá.",
       "expected_output": "Phân loại theo 06 §3 trước khi sửa: đây là case A/B (nghiệp vụ đúng, giao diện rối/AI-looking) → chạy ngược checklist 06 §2 + gate anti-slop. KHÔNG mở Hallmark cho màn admin (contract 08: admin cấm Hallmark, không macrostructure/theme). Guardrail: đổi HOW nhìn giữ WHAT chạy — không đổi AC/permission/flow; đổi token toàn cục nếu cần là RED phải confirm 1 câu. Kết quả có screenshot before/after.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "eval_name": "g3-no-unrequested-filters-counts",
+      "prompt": "Làm màn feed bài viết cộng đồng cho ngư dân, cho đầy đủ tiện ích.",
+      "expected_output": "Không tự thêm chip lọc chủ đề, số đếm trên tab, dòng giải thích, hộp hỏi. Mỗi phần tử truy được nguồn (AC/lời chủ dự án) — \"cho đầy đủ\" không phải nguồn (G3). Screen map có cột Mẫu tham chiếu: Facebook feed — chép ô soạn 1 dòng, bình luận inline, chủ đề tự đoán (G4/G5). Mục \"Không làm\" ghi lọc chủ đề. Án lệ ForFish 42442c6f, ee799e39, 45213b24.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "eval_name": "g10-only-what-was-asked",
+      "prompt": "Sắp xếp lại bố cục trang chi tiết cơ sở theo mockup này (ảnh có viền đậm hơn, menu nhóm gấp mở, thêm cột Mục).",
+      "expected_output": "Tách ý chính (SẮP XẾP bố cục — điều user nói thành lời) khỏi minh hoạ (viền, mật độ, menu nhóm, cột Mục trong ảnh). Chỉ đổi sắp xếp; KHÔNG đổi viền/mật độ/menu; phần minh hoạ khác nêu thành câu hỏi hoặc ghi \"Không làm\". Làm lát mỏng + screenshot trước khi rộng. Án lệ AMS GD-11 a8e43aea/4b45374b, GD-12.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "eval_name": "g11-no-raw-internals",
+      "prompt": "Màn danh sách hồ sơ đang hiện người lập là một chuỗi uuid, trạng thái là OUT_OF_SCOPE, lỗi tải hiện nguyên thông báo PostgREST. Sửa cho đúng.",
+      "expected_output": "Sửa tận gốc ở hàm dùng chung (G11 + CLAUDE.md quy tắc 3): bảng nhãn enum dùng chung (OUT_OF_SCOPE → lý do bằng lời), resolve uuid → tên người, hàm thông báo lỗi thân thiện dùng chung (không lộ tên bảng/RLS). Grep mọi nơi hiển thị enum/id/lỗi thô, không vá riêng màn này. Ghi Sổ đã chốt. Án lệ mkn-3 ebac43bf/1869db90, SHT-CRM 50b592f.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "eval_name": "g13-back-and-g1-no-persona-size",
+      "prompt": "Thiết kế màn soạn báo cáo chuyến biển dạng sheet trượt lên, người dùng là ngư dân lớn tuổi nên làm chữ thật to.",
+      "expected_output": "G1: không lấy \"lớn tuổi\" làm luật chữ to — dùng cỡ chữ mặc định nền tảng, chữ lớn là TUỲ CHỌN trong Cài đặt (mặc định thường), trừ khi có [chủ dự án] chốt; nêu điểm này lên. G13: bảng Điều hướng — Back đóng sheet trước, giữ chữ đang gõ, không thoát trang mất dữ liệu; hành động phá huỷ có Undo/xác nhận. design-spec có dấu spec-format 2 (Điều hướng, Sổ đã chốt, cột Mẫu tham chiếu) và design-verify PASS. Án lệ ForFish 7c9f8cd9, f4d8fea2 X1.",
       "files": []
     }
   ]

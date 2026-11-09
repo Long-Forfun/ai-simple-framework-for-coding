@@ -102,6 +102,25 @@ EOF_MAP
   if [ -n "$HITB" ]; then echo "$HITB" | sed 's/^/  BLOCK: AC chua component UI (anti-UI) -> /'; rc=1; fi
   echo "$ACSCAN" | grep -niE "$UI_WARN" 2>/dev/null | sed 's/^/  WARN: AC co the chua tu UI -> /' || true
 
+  # v1.26.0 (ADR 003) — MỌI spec, chỉ WARN (không chặn oan spec cũ):
+  NRV=$(grep -ciE 're-verified' "$f" 2>/dev/null); NRV=${NRV:-0}
+  [ "$NRV" -gt 20 ] 2>/dev/null && echo "  WARN: $NRV comment 're-verified' -> spec dang thanh nhat ky sua loi (G7): ghi TRANG THAI HIEN TAI, lich su de git"
+  DUPF=$(grep -E '^###[ \t]*Flow[ \t]' "$f" | awk '{print $3}' | sort | uniq -d | tr '\n' ' ')
+  [ -n "$DUPF" ] && echo "  WARN: heading Flow trung ID: $DUPF-> 1 nghiep vu dinh nghia 2 lan (G7)"
+
+  # v1.26.0 — spec FORMAT 2 (opt-in qua dấu từ template mới) → BLOCK nếu thiếu mục chống-đoán-mò:
+  if grep -q 'spec-format: 2' "$f" 2>/dev/null; then
+    hs() { grep -qiE "^##[^#].*($1)" "$f" 2>/dev/null; }
+    { hs 'quyết định cần|quyet dinh can|Quyết định cần' || grep -qE '^## 0\.' "$f"; } \
+                                 || { echo "  BLOCK: spec-format 2 thieu section 'Quyet dinh can chu du an' (G7)"; rc=1; }
+    hs 'từ vựng|tu vung|Từ vựng' || { echo "  BLOCK: spec-format 2 thieu section 'Tu vung chuan' (G6)"; rc=1; }
+    hs 'đại lượng|Đại lượng|dai luong'|| { echo "  BLOCK: spec-format 2 thieu section 'Tu dien dai luong' (G4; khong co so -> ghi 'N/A' trong heading)"; rc=1; }
+    hs 'sổ đã chốt|so da chot|Sổ đã chốt' || { echo "  BLOCK: spec-format 2 thieu section 'So da chot' (G7/G9)"; rc=1; }
+    S0=$(awk '/^##[^#]/{ if (p) exit; if ($0 ~ /^## 0\.|uyết định cần|uyet dinh can/) {p=1; next} }
+              p && /<!--/ {c=1} p && c { if (/-->/) c=0; next } p && /^[ \t]*([-*]|[0-9]+\.)[ \t]/ {n++} END{print n+0}' "$f")
+    [ "$S0" -gt 7 ] 2>/dev/null && { echo "  BLOCK: §0 Quyet dinh can chu du an co $S0 dong (>7) -> chu du an khong duyet noi (G7, an le ForFish spec 17)"; rc=1; }
+  fi
+
   return $rc
 }
 
@@ -133,6 +152,19 @@ if [ "$MODE" = "--self-test" ]; then
   R=$(lint_one "$T/e.md"); echo "$R" | grep -q 'thieu dong Assert' && echo "PASS: khong nham 'assert' trong Then" || { echo "FAIL: nham assert trong Then -> false-pass"; RC=1; }
   printf "# x\n${FM}## 10. Acceptance\n### AC-1 a · Test: e2e\n- Then mo popup va bam nut Duyet\n- **Assert** status==1\n" > "$T/g.md"
   R=$(lint_one "$T/g.md"); echo "$R" | grep -q 'component UI' && echo "PASS: BLOCK component UI tieng Anh (popup)" || { echo "FAIL: UI tieng Anh LOT"; RC=1; }
+  # v1.26.0 (ADR 003): spec-format 2 opt-in + WARN nhat ky. Fixture chong-oan: spec CU khong dau -> khong BLOCK.
+  ACOK='### AC-1 a · Test: e2e\n- **Given** x\n- **When** y\n- **Then** z\n- **Assert** count(x)==1\n'
+  printf "# x\n${FM}<!-- spec-format: 2 -->\n## 0. Quyết định cần chủ dự án\n<!-- ghi chu\n- dong comment khong dem -->\n- a\n- b\n## 2. Từ vựng chuẩn\n| a | b | c |\n## 6. Từ điển đại lượng (N/A — không có số)\n## 8. Acceptance\n${ACOK}## 10. Sổ đã chốt\n| d | l | r | c |\n" > "$T/v2ok.md"
+  R=$(lint_one "$T/v2ok.md"); echo "$R" | grep -q BLOCK && { echo "FAIL: spec-format 2 hop le bi BLOCK oan:"; echo "$R"; RC=1; } || echo "PASS: spec-format 2 hop le qua (comment trong §0 khong dem)"
+  printf "# x\n${FM}<!-- spec-format: 2 -->\n## 0. Quyết định cần chủ dự án\n- a\n## 6. Từ điển đại lượng\n## 8. Acceptance\n${ACOK}## 10. Sổ đã chốt\n" > "$T/v2novocab.md"
+  R=$(lint_one "$T/v2novocab.md"); echo "$R" | grep -q "thieu section 'Tu vung chuan'" && echo "PASS: format 2 thieu Tu vung -> BLOCK" || { echo "FAIL: format 2 thieu Tu vung LOT"; RC=1; }
+  printf "# x\n${FM}<!-- spec-format: 2 -->\n## 0. Quyết định cần chủ dự án\n- 1\n- 2\n- 3\n- 4\n- 5\n- 6\n- 7\n- 8\n## 2. Từ vựng\n## 6. Đại lượng\n## 8. Acceptance\n${ACOK}## 10. Sổ đã chốt\n" > "$T/v2long0.md"
+  R=$(lint_one "$T/v2long0.md"); echo "$R" | grep -q 'co 8 dong (>7)' && echo "PASS: §0 8 dong -> BLOCK" || { echo "FAIL: §0 dai LOT"; echo "$R"; RC=1; }
+  RV=''; i=0; while [ $i -lt 21 ]; do RV="${RV}<!-- re-verified $i -->\n"; i=$((i+1)); done
+  printf "# x\n${FM}${RV}## Flows\n### Flow NV8 — a\n### Flow NV8 — b\n## 10. Acceptance\n${ACOK}" > "$T/oldlog.md"
+  R=$(lint_one "$T/oldlog.md")
+  if echo "$R" | grep -q BLOCK; then echo "FAIL: spec CU (khong dau format 2) bi BLOCK oan boi luat moi:"; echo "$R"; RC=1
+  else { echo "$R" | grep -q "21 comment 're-verified'" && echo "$R" | grep -q 'Flow trung ID: NV8'; } && echo "PASS: spec cu -> chi WARN nhat ky + Flow trung, khong BLOCK" || { echo "FAIL: WARN nhat ky/Flow trung LOT"; echo "$R"; RC=1; }; fi
   # v1.11.0 (Lo an toan so 1): mktemp fail tren nhanh --staged (production-facing) PHAI exit 1 —
   # truoc day TMP rong -> git show fail -> || continue -> moi file staged bi skip im lang -> PASS GIA.
   SELFV="$0"; case "$SELFV" in /*|[A-Za-z]:*) ;; *) SELFV="$(pwd)/$SELFV";; esac

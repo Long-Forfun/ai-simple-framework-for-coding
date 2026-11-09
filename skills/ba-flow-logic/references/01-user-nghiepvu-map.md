@@ -4,6 +4,8 @@ Mọi spec rối rắm đều bắt đầu từ việc viết theo **tính năng
 
 ## B1. User registry — điểm xuất phát
 
+> v2: mọi dòng gắn nhãn nguồn; mô tả BỐI CẢNH quan sát được, không nhân khẩu học tưởng tượng; vai/quyền theo bảng 3 câu tiền–trách nhiệm–bảo lãnh → `references/06` §1–2 (ADR 003 G1/G2).
+
 Liệt kê **mọi actor**, không chỉ người:
 - **Người**: theo role/tier (chủ/nhân viên/kế toán; free/pro; admin/staff/khách-portal).
 - **Phi người**: external system (cổng thanh toán, sàn TMĐT), cron/scheduler (nhắc hạn, đồng bộ đêm), webhook (nhận sự kiện ngoài).
@@ -38,7 +40,7 @@ Luật:
 - **Cross tối thiểu**: chỉ cross khi thật cần. Nếu một flow có **>2 cross-point (≥3 user)** → nghi ngờ đang gánh nhiều nghiệp vụ, tách ra. (cùng ngưỡng rubric §4 ở references/02.)
 - Mọi handoff phải có **điểm kết khi treo** — không có cột đó = flow có thể nằm chờ vô hạn.
 
-`Cross-User-Integrity` agent (xem references/02 §B5) soi lại toàn map tìm: handoff orphan (không người nhận), điều kiện thiếu, **vòng lặp-treo** (khác rework-loop hợp lệ — xem Edge cases), nghiệp vụ mồ côi.
+`Red-Team BA` (SKILL §4 v2; v1 gọi là Cross-User-Integrity) soi lại toàn map tìm: handoff orphan (không người nhận), điều kiện thiếu, **vòng lặp-treo** (khác rework-loop hợp lệ — xem Edge cases), nghiệp vụ mồ côi.
 
 ## Edge cases — cấu hình owner/cross bất thường (xử rõ, KHÔNG improvise)
 | Ca | Luật |

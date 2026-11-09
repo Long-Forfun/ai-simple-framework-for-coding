@@ -78,6 +78,30 @@ Observer phân loại defect bằng cách **đối chiếu với oracle**, KHÔN
   §5 bước 4c: sai HÀNH VI (AC/flow/nghiệp vụ) → handoff **BA**; sai GIAO DIỆN tại design-spec
   (screen map/state/token chính nó sai) → handoff **ui-design-logic** — BA bị cấm đụng UI.
 
+### 3b. Sổ đã chốt — chống sửa xong lại hỏng (v1.26.0, ADR 003 G9)
+
+**Trước khi fix:**
+- Đọc `## Sổ đã chốt` của ba-spec và design-spec vùng đó.
+- Đọc thêm thân commit gần nhất của vùng (`git log -5 --format=%B -- <path>`).
+- Bản fix đi ngược một dòng trong sổ thì DỪNG: đó là RED (đảo quyết định của chủ dự án), không phải bug.
+
+**Sau khi fix theo lời chủ dự án** ("bỏ X", "đừng Y", ảnh chụp kèm câu than):
+- Ghi 1 dòng vào Sổ đã chốt: ngày, lời nguyên văn ngắn, luật, thứ canh.
+- Thứ canh là test hoặc grep, để lần sau agent khác không thêm lại. Án lệ: mkn-3 ẩn BORDER_NEAR → mở lại → ẩn lại.
+- KHÔNG viết comment `re-verified` dài vào spec. Lịch sử đã nằm trong commit.
+
+**Phân loại theo 8 lỗi gốc** (ui-design-logic §0b):
+- Bảng tra:
+  - "bỏ đi / rối / không cần" → G3
+  - "tự làm đi / đừng hỏi" → G4
+  - "chưa giống fb / gg map" → G5
+  - "chỉ muốn đổi X" → G10
+  - lộ mã / id / `[object Object]` → G11
+  - "số này gây hiểu lầm" → G12
+  - "làm sao quay về" → G13
+- Lỗi G11 sửa ở **hàm dùng chung** (bảng nhãn enum, hàm thông báo lỗi), không vá từng màn.
+- Lỗi thuộc G1–G7 phía BA (vai, đại lượng, luật chặn) → handoff BA.
+
 ---
 
 ## 4. Team structure

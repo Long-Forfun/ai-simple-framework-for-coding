@@ -111,6 +111,20 @@ lint_one() {
     echo "  WARN: co man 'marketing-public' nhung thieu muc 'Ngon ngu hinh' (contract 08 §3)"
   fi
 
+  # v1.26.0 (ADR 003) — MỌI spec, chỉ WARN (không chặn oan spec cũ):
+  NRV=$(grep -ciE 're-verified' "$f" 2>/dev/null); NRV=${NRV:-0}
+  [ "$NRV" -gt 20 ] 2>/dev/null && echo "  WARN: $NRV comment 're-verified' -> design-spec dang thanh nhat ky (G9): ghi TRANG THAI HIEN TAI, lich su de git"
+  # v1.26.0 — spec FORMAT 2 (opt-in qua dấu template mới) → BLOCK nếu thiếu mục chống-đoán-mò:
+  if grep -q 'spec-format: 2' "$f" 2>/dev/null; then
+    has_section "$f" 'điều hướng|Điều hướng|dieu huong|navigation' \
+      || { echo "  BLOCK: spec-format 2 thieu section 'Dieu huong' (Back lam gi / duong ve, G13)"; rc=1; }
+    has_section "$f" 'sổ đã chốt|so da chot|Sổ đã chốt' \
+      || { echo "  BLOCK: spec-format 2 thieu section 'So da chot' (chong hong lai quyet dinh chu du an, G9)"; rc=1; }
+    SMH=$(sec_of "$f" 'screen map' | grep -m1 '^|')
+    echo "$SMH" | grep -qiE 'mẫu tham chiếu|mau tham chieu|tham chiếu|reference' \
+      || { echo "  BLOCK: spec-format 2: Screen map thieu cot 'Mau tham chieu' (app quen + chep gi, G5)"; rc=1; }
+  fi
+
   return $rc
 }
 
@@ -180,6 +194,22 @@ if [ "$MODE" = "--self-test" ]; then
   printf "# x\n${FM}${LADDER}${SMHDR_T}| 1 | X | product | nav | xem | xong | Tạo |\n| 2 | Y | read | nav | đọc | xong | (không) |\n| 3 | Z | marketing-public | seo | đọc | Đăng ký | CTA |\nNgôn ngữ hình: có\n${STATE}" > "$T/type-ok.md"
   R=$(lint_one "$T/type-ok.md")
   echo "$R" | grep -q "ngoai enum" && { echo "FAIL: enum Type bat oan gia tri hop le:"; echo "$R"; RC=1; } || echo "PASS: enum Type — product/read/marketing-public deu qua"
+
+  # v1.26.0 (ADR 003): spec-format 2 opt-in. Fixture chong-oan: spec cu khong dau -> khong BLOCK boi luat moi.
+  SMHDR2='## Screen map\n| # | Màn | Vào từ | User đến để làm gì | Step tiếp theo | Primary | Mẫu tham chiếu |\n|---|---|---|---|---|---|---|\n| 1 | Feed | dock | đọc | đăng bài | Đăng | Facebook: feed |\n'
+  NAV='## Điều hướng\n| Màn | Back | Về gốc | Phá huỷ |\n|---|---|---|---|\n| Feed | không có | dock | — |\n'
+  SO='## Sổ đã chốt\n| Ngày | Lời | Luật | Canh |\n|---|---|---|---|\n'
+  printf "# x\n${FM}<!-- spec-format: 2 -->\n${LADDER}${SMHDR2}${STATE}${NAV}${SO}mobile screenshot\n" > "$T/v2ok.md"
+  R=$(lint_one "$T/v2ok.md"); echo "$R" | grep -q BLOCK && { echo "FAIL: design-spec format 2 hop le bi BLOCK oan:"; echo "$R"; RC=1; } || echo "PASS: design-spec format 2 hop le qua"
+  printf "# x\n${FM}<!-- spec-format: 2 -->\n${LADDER}${SMHDR}${SMROW}${STATE}\n" > "$T/v2bad.md"
+  R=$(lint_one "$T/v2bad.md")
+  { echo "$R" | grep -q "thieu section 'Dieu huong'" && echo "$R" | grep -q "thieu section 'So da chot'" && echo "$R" | grep -q "thieu cot 'Mau tham chieu'"; } \
+    && echo "PASS: format 2 thieu Dieu huong/So da chot/Mau tham chieu -> BLOCK" || { echo "FAIL: format 2 thieu muc LOT"; echo "$R"; RC=1; }
+  RV=''; i=0; while [ $i -lt 21 ]; do RV="${RV}<!-- re-verified $i -->\n"; i=$((i+1)); done
+  printf "# x\n${FM}${RV}${LADDER}${SMHDR}${SMROW}${STATE}mobile screenshot\n" > "$T/oldlog.md"
+  R=$(lint_one "$T/oldlog.md")
+  if echo "$R" | grep -q BLOCK; then echo "FAIL: design-spec CU bi BLOCK oan boi luat moi:"; echo "$R"; RC=1
+  else echo "$R" | grep -q "21 comment 're-verified'" && echo "PASS: design-spec cu -> chi WARN nhat ky, khong BLOCK" || { echo "FAIL: WARN nhat ky LOT"; RC=1; }; fi
 
   # v1.11.0 (Lo an toan so 1): mktemp fail tren nhanh --staged (production-facing) PHAI exit 1.
   SELFV="$0"; case "$SELFV" in /*|[A-Za-z]:*) ;; *) SELFV="$(pwd)/$SELFV";; esac

@@ -40,7 +40,7 @@ GREEN: thêm AC/flow mới · YELLOW: thêm nghiệp vụ trong scope + Assumpti
 - Có thể generate phụ trợ: `_generated/flow-graph.md` từ ba-spec flows để soi dead-end bằng máy (Cross-User-Integrity tự động hoá). Không bắt buộc.
 
 ## 6. /audit (móc #12)
-Flow optimization log (§6 ba-spec) + History là bằng chứng cho `/audit` quý: nghiệp vụ nào AC chưa phủ nhánh lỗi, flow nào chưa qua Optimizer, cross-user nào còn treo → backlog tối ưu.
+Flow optimization log (§6 ba-spec format cũ; format 2: "biến thể đã loại" trong §5 Flows) + Sổ đã chốt là bằng chứng cho `/audit` quý: nghiệp vụ nào AC chưa phủ nhánh lỗi, flow nào chưa qua Optimizer, cross-user nào còn treo → backlog tối ưu.
 
 ## 7. Memory (móc #07)
 Quyết định BA lặp (ưu tiên flow ngắn vs an toàn, granularity nghiệp vụ) → ghi memory feedback theo format ai-simple, ≥2x thì promote rule, không hỏi lại.

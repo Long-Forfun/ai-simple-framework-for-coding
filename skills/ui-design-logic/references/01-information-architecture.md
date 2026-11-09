@@ -6,7 +6,7 @@ và ghi thành DESIGN-SPEC.md để mọi session sau tuân theo.
 
 ## 1. Thang người dùng — không tồn tại "user chung chung"
 
-> **Nguồn**: nếu app-map có `ba-spec` (do `ba-flow-logic` sinh) → thang user TIẾP NỐI từ `ba-spec §2 User registry` (đã có loại user + vòng đời + bối cảnh) và `§5 Flows`, KHÔNG dựng lại từ đầu. Việc ở đây là *bổ sung 3 câu design* (muốn thấy gì / truyền tải gì / thúc đẩy gì) lên trên các loại user ba-spec đã liệt kê. Không có ba-spec → tự dựng như dưới.
+> **Nguồn**: nếu app-map có `ba-spec` (do `ba-flow-logic` sinh) → thang user TIẾP NỐI từ `ba-spec §3 User + vai` (format 2; format cũ: §2 User registry) (đã có loại user + vòng đời + bối cảnh) và `§5 Flows`, KHÔNG dựng lại từ đầu. Việc ở đây là *bổ sung 3 câu design* (muốn thấy gì / truyền tải gì / thúc đẩy gì) lên trên các loại user ba-spec đã liệt kê. Không có ba-spec → tự dựng như dưới.
 
 Mọi quyết định design phía sau đều phục vụ MỘT loại user cụ thể đang ở MỘT bậc cụ thể.
 Phân loại theo 2 trục, và với TỪNG loại trả lời đủ 3 câu — đây là triết lý gốc:

@@ -19,6 +19,8 @@ Một nghiệp vụ thường có nhiều cách chạy. Đừng chốt cách đ�
 
 ```
 Orchestrator: với mỗi nghiệp vụ →
+> v2 (ADR 003): đánh giá chỉ có giá trị khi người chấm có NGUỒN đối chiếu — bỏ kiểu Optimizer tự chấm flow của chính đội mình (án lệ ForFish spec 08 "Bởi: Orchestrator"). Rubric dưới vẫn là checklist; người soi cuối là **Red-Team BA** (SKILL §4) hỏi "ai đòi bước này / lấy từ đâu". Format 2 ghi biến thể đã loại ngay trong §5 Flows, không cần bảng log riêng.
+
   1. Flow-Suggester  → đề ≥2 biến thể (góc: ngắn nhất / an toàn nhất / ít cross nhất)
   2. Domain-Specialist (nếu nghiệp vụ CHUYÊN) → đánh giá đúng-đủ theo chuẩn nghiệp vụ
   3. Flow-Optimizer  → chấm mọi biến thể theo RUBRIC → chọn/ghép flow tối ưu + lý do loại biến thể khác

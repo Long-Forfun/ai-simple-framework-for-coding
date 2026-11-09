@@ -3,20 +3,19 @@ name: ba-flow-logic
 description: Phân tích nghiệp vụ hướng-người-dùng, pha đầu pipeline BA→design→build→triage: nhu cầu mơ hồ thành ba-spec (USER → nghiệp vụ → handoff → flow Input/Output → acceptance criteria làm oracle). Kích hoạt: làm BA, phân tích nghiệp vụ, viết yêu cầu/spec, vẽ hoặc tối ưu flow, tính năng mới còn mơ hồ. KHÔNG: thiết kế UI (→ui-design-logic), defect app đang chạy (→ui-ux-triage). Dừng ở WHAT+WHY.
 ---
 
-# BA Flow Logic — phân tích nghiệp vụ hướng người dùng (team-agent)
+# BA Flow Logic v2 — phân tích nghiệp vụ từ SỰ THẬT, không từ trí tưởng tượng
 
-BA KHÔNG phải viết một đống yêu cầu chung chung. BA là **chuỗi quyết định đi từ NGƯỜI DÙNG xuống**: ai dùng → họ có những nghiệp vụ gì → nghiệp vụ nào bắt tay với user khác → mỗi nghiệp vụ chạy theo flow nào (vào gì / ra gì) → flow nào là **tối ưu** → nghiệm thu bằng acceptance criteria.
+> v2 (2026-11-09) viết lại theo án lệ `docs/adr/003-an-le-ba-ui-tu-lich-su-commit.md`.
+> Rà ~6.000 commit ở 8 repo: lỗi BA không đến từ việc thiếu mục trong spec. Lỗi đến từ chỗ AI
+> **lấp chỗ trống bằng đoán mò** rồi viết thành luật: bịa vai, bịa persona, tự chốt luật chặn/xoá,
+> đếm sai đại lượng. Spec v1 đủ mục mà vẫn sai, vì gate chỉ đếm mục.
 
 ```
-USER → nghiệp vụ của user → cross-user handoff → flow (Input→Output)
-→ tối ưu flow (team-agent suggest + đánh giá) → Acceptance Criteria → ba-spec.md
+SỰ THẬT (lời chủ dự án · code đang chạy · dữ liệu thật · văn bản luật) → USER → nghiệp vụ → handoff
+→ flow Input/Output → TỪ ĐIỂN ĐẠI LƯỢNG → AC chạy trên số thật → ba-spec NGẮN + Quyết định cần chủ dự án
 ```
 
-**Spec tốt là hệ quả của tính hướng-đích.** Spec xấu — luồng treo, bỏ dở, lỗi — đến từ: viết chung chung, không định hướng, không mục tiêu, rối rắm, cross nghiệp vụ của user khác lung tung. Skill này diệt 6 bệnh đó bằng **rubric tối ưu** (§4, áp ở bước B5) và **owner-user bắt buộc cho mọi nghiệp vụ**.
-
----
-
-## 0. Vị trí trong hệ 5-skill (ĐỌC TRƯỚC)
+## 0. Vị trí trong hệ 5-skill
 
 ```
 [ba-flow-logic] (nhu cầu→ba-spec) → ui-design-logic (→design-spec) → build → ui-ux-triage (vận hành/sửa)
@@ -24,170 +23,170 @@ USER → nghiệp vụ của user → cross-user handoff → flow (Input→Outpu
         └──────────────── tất cả trên nền ai-simple (rail + truth + tier + memory + verify) ────────────┘
 ```
 
-- **Skill này = pha PHÂN TÍCH.** Chưa có code; biến nhu cầu thành **oracle hành vi** (`ba-spec`).
-- **Output `ba-spec` là canonical app-map doc** — sống ở `docs/app-map/*ba-spec*.md`, đủ frontmatter coupling. `ui-design-logic` đọc nó (user-ladder + flow), `ui-ux-triage` đọc AC làm oracle.
-- **Defer sang ai-simple** (§Defer): risk-tier #06, memory #07, coupling/verify #12, doc+test #04 — KHÔNG tự chế lại.
-- **Nhận handoff NGƯỢC từ triage** (§Reverse): "code khớp spec mà vẫn sai" = spec sai/thiếu → sửa AC, KHÔNG sửa code.
-- **Độc lập được**: chạy riêng cho app chỉ cần spec hành vi. Vắng ai-simple → degrade: tier áp cục bộ, ba-spec để root tạm.
+- **Pha PHÂN TÍCH.** Chưa có code. Biến nhu cầu thành **oracle hành vi** (`ba-spec`) ở `docs/app-map/*ba-spec*.md`, có frontmatter coupling.
+- `ui-design-logic` đọc user và flow từ đây. `ui-ux-triage` dùng AC làm oracle.
+- **Defer sang ai-simple**: risk-tier #06, memory #07, coupling/verify #12, doc+test #04. Không tự chế lại.
+- **Nhận handoff ngược**: từ triage ("code khớp spec mà vẫn sai"), từ design (spec thiếu hành vi), từ security (AC cho phép hành vi không an toàn). Khi đó sửa spec, không sửa code (§8).
+
+## 1. Trigger / non-trigger
+
+Kích hoạt khi:
+- Có các cụm "làm BA", "phân tích nghiệp vụ", "viết spec/SRS", "vẽ flow", "tối ưu quy trình", "acceptance criteria".
+- Có nhu cầu hoặc tính năng mới còn mơ hồ.
+- Nhận handoff ngược (như trên).
+
+KHÔNG kích hoạt:
+- Màn hình, layout, làm đẹp, chọn component → **ui-design-logic**.
+- Defect trên app đang chạy → **ui-ux-triage**.
+- Đổi nhỏ đã rõ (đổi text, sửa 1 rule có sẵn) → build thẳng.
+- Lọc hay sắp xếp dữ liệu đã có → design.
+- DB migration → ai-simple #06 RED.
+
+Tie-breaker: WHAT (user, rule, hành vi) là BA. HOW-nhìn là design.
 
 ---
 
-## 1. Trigger / non-trigger / tie-breaker
+## 2. Bảy lỗi gốc của BA — kiểm TRƯỚC khi viết từng dòng spec [INV]
 
-Kích hoạt khi user:
-- "làm BA", "phân tích nghiệp vụ", "viết yêu cầu / spec / SRS", "vẽ flow", "tối ưu flow/quy trình"
-- Mô tả một nhu cầu/tính năng MỚI còn mơ hồ ("tôi muốn làm app X", "thêm mảng Y cho hệ thống")
-- "acceptance criteria", "định nghĩa đúng-sai cho tính năng"
-- Nhận **handoff ngược** từ `ui-ux-triage` (code khớp spec mà HÀNH VI vẫn sai), từ
-  `ui-design-logic` (06 §3 case C — đang design phát hiện spec THIẾU hành vi; xem ref 04),
-  hoặc từ `security-logic` (AC cho phép hành vi KHÔNG AN TOÀN — vd thiếu ràng buộc quyền/xác thực
-  trong flow → sửa AC theo §7, không chỉ vá code; format HANDOFF như W3)
+Mỗi lỗi có mã G (theo ADR 003) và bằng chứng commit thật. Vi phạm là bug của spec.
 
-KHÔNG kích hoạt (→ skill khác):
-- Thiết kế màn, layout, "làm đẹp", chọn component/màu → **ui-design-logic**
-- Defect trên UI đã chạy, "màn này sai", test+fix → **ui-ux-triage**
-- Đổi nhỏ ĐÃ RÕ (sửa 1 rule có sẵn, đổi text) → **build thẳng**, không cần BA
-- DB migration / schema → ASK + gate (ai-simple #06 RED)
+**G1 — Mọi khẳng định về user/nghiệp vụ phải có NGUỒN.**
+- Gắn 1 trong 5 nhãn: `[chủ dự án]` (lời nguyên văn hoặc tóm tắt có ngày), `[code]` (path), `[dữ liệu]` (bảng/truy vấn/số thật), `[văn bản]` (luật, quy chế, hợp đồng), `[GIẢ ĐỊNH]`.
+- `[GIẢ ĐỊNH]` KHÔNG được sinh luật cứng, token, test hay ràng buộc thiết kế. Nó chỉ được sinh mặc định nhẹ, đảo ngược được, và nằm trong §Quyết định cần chủ dự án.
+- Án lệ: persona "ngư dân 40–60 tuổi, tay ướt" đẻ ra luật chữ to, có test canh 4 tháng, rồi anh Long ra lệnh xoá (SDMap `9f34159c`, ForFish `7c9f8cd9`).
+- Cấm mô tả user bằng nhân khẩu học tưởng tượng. Thay bằng **bối cảnh quan sát được**: thiết bị gì, đang làm việc gì, online hay offline bao nhiêu phần trăm thời gian (có nguồn).
 
-Tie-breaker: cùng trigger "rà soát" → BA = phân tích nhu cầu/flow TRƯỚC khi có code; triage = sửa code ĐÃ có; ui-design-logic = quyết giao diện. Nghi ngờ "đây là WHAT hay HOW?" → WHAT (user/flow/rule) là BA, HOW (screen/pixel) là design.
+**G2 — Vai và quyền suy từ TIỀN + TRÁCH NHIỆM, không từ "cho linh hoạt".**
+- Với mỗi vai, trả lời 3 câu: *ai trả tiền · ai chịu trách nhiệm pháp lý hoặc tài sản · ai bảo lãnh danh tính*.
+- Mặc định an toàn:
+  - Số vai ít nhất có thể.
+  - Vai có đặc quyền (đại lý, thu mua, quản trị, cán bộ) do **người duyệt cấp**, không tự chọn.
+  - Vai đã chọn **không đổi tự do**: đổi được là dữ liệu rối.
+  - Quyền xem/sửa dữ liệu của một tài sản chỉ thuộc về **chủ tài sản**.
+  - Người đã vào app thì không bắt đăng nhập lại cho một nghiệp vụ con.
+- Án lệ: ForFish `fbfac1b6` (4 vai tự chọn, "đổi không giới hạn"), `f4de5247` (thuyền trưởng xem giám sát); mkn-3 `93680999`→`79ba054b` (tách nhóm quyền rồi 4 giờ sau gộp lại).
 
----
+**G3 — Không nghiệp vụ, không bước, không tuỳ chọn nào mà không truy được nguồn.**
+- Mỗi nghiệp vụ, bước hay rule ghi rõ ai đòi: `[chủ dự án]`, `[văn bản]` hoặc hệ quả bắt buộc của một thứ đã có nguồn. Không truy được thì bỏ.
+- "Cho đầy đủ", "người dùng có thể muốn", "để mở rộng sau" không phải nguồn.
+- Án lệ: ForFish `0fd250c6` ("ko cần quy dầu ra tiền đâu"), spec 14 AC03 lọc bị gạch bỏ.
 
-## 2. Pipeline 7 bước — BẮT BUỘC theo thứ tự, không nhảy cóc
+**G4 — Đại lượng phải vào TỪ ĐIỂN trước khi vào AC.** Với mỗi con số mà nghiệp vụ tính, đếm hay hiển thị, khai đủ 6 ô:
 
-```
-B0 Sàng        → LOGIC vs REQUEST (ai-simple #05); need mơ hồ/mới → chạy; đổi nhỏ rõ → trả về build
-B1 User registry → liệt kê MỌI actor (loại user/role/tier, cả external system, cron, admin) = ĐIỂM XUẤT PHÁT
-B2 User×Nghiệp vụ → mỗi user có nghiệp vụ gì; mỗi nghiệp vụ buộc đúng 1 OWNER-USER
-B3 Cross-user map → nghiệp vụ dính nhiều user: ai bàn giao ai · điều kiện chuyển · KHÔNG dead-end
-B4 Flow/nghiệp vụ → Input → Steps → Output; owner-user; điểm cross; START rõ + END rõ
-B5 Tối ưu flow  → TEAM-AGENT: suggest biến thể → chấm rubric → flow tối ưu + lý do (+ chuyên gia nếu nghiệp vụ chuyên)
-B6 AC từ flow tối ưu → Given/When/Then dựa Input/Output = ORACLE → viết ba-spec.md   ← CHỐT CHẶN
-```
-
-**`ba-spec` là chốt chặn**: chưa có ba-spec (B6) thì CHƯA chuyển sang design. Spec nhỏ cho việc nhỏ — thêm 1 nghiệp vụ thì spec ngắn, nhưng phải có, vì nó ép trả lời "nghiệp vụ này của USER nào, vào gì ra gì, đúng là gì" trước khi vẽ màn.
-
-Template đầy đủ: `templates/ba-spec.md.template`. Chi tiết từng bước: `references/`.
-
----
-
-## 3. Team-agent roster cho B5 (spawn như ui-ux-triage; TeamCreate prefix "ba-flow")
-
-```
-TeamCreate team_name=ba-flow-<n>
-  BA-Orchestrator → Flow-Suggester / Flow-Optimizer / Domain-Specialist(động) / Cross-User-Integrity
-```
-
-| Agent | Vai trò | Không làm |
+| Ô | Câu hỏi | Án lệ khi bỏ trống |
 |---|---|---|
-| **BA-Orchestrator** (điều phối) | Giữ map user×nghiệp vụ; xử user nào trước; **quyết khi nào gọi Domain-Specialist**; ráp ba-spec; áp risk-tier; gate cuối | Không tự chấm flow một mình |
-| **Flow-Suggester** (fan-out) | Mỗi nghiệp vụ → ≥2 biến thể flow theo các góc: *ngắn nhất / an toàn nhất / ít cross nhất* | Không tự chốt |
-| **Flow-Optimizer** (đánh giá) | Chấm biến thể theo **rubric** → chọn/ghép flow tối ưu + ghi lý do loại biến thể khác | Không nói UI |
-| **Domain-Specialist** (động) | Khi nghiệp vụ CHUYÊN (kế toán/công nợ/kho/thanh toán/bảo hiểm/y tế/pháp lý/CSKH…) → đánh giá đúng & đủ theo chuẩn nghiệp vụ đó | Không generic |
-| **Cross-User-Integrity** | Soi toàn map: handoff orphan/treo, cross thừa, nghiệp vụ không owner → trả danh sách điểm gãy | Không sửa, chỉ báo |
+| Đơn vị đếm | đếm cái gì: tàu, lượt, vụ hay dòng? | IUU `2455252` (dòng ≠ vụ), `630c79e` (2.369 lượt so với 330 tàu) |
+| Kỳ | trong kỳ hay luỹ kế? mốc giờ nào (giờ VN)? | IUU `d8e576d` (5.1 phải luỹ kế) |
+| Nguồn | bảng hoặc cột nào, suy từ đâu | IUU `a14f6ec` (cộng đôi mẫu số) |
+| Null ≠ 0 | chưa khai thì hiện gì? (**không bao giờ là 0**) | IUU `51f403a` (ô tổng luôn 0, kê trung thực bị điểm thấp) |
+| Chống trùng | khoá duy nhất là gì, cái gì được mang sang | IUU `05a6a15` (Hà Tĩnh 9 vụ thật ra là 4) |
+| Đơn vị đo/tiền | đồng hay nghìn đồng, kg hay tấn | IUU `3b33fba`, `5b12100` (bị nhân 1000) |
 
-Cơ chế: team-agent (Agent/Task), **TeamDelete sau khi user confirm done**. App nhỏ/1 user/nghiệp vụ đơn giản → Orchestrator chạy tuần tự, không cần spawn (đừng over-engineer). Spawn khi: ≥3 nghiệp vụ, hoặc có nghiệp vụ chuyên, hoặc có cross-user, hoặc user yêu cầu "tối ưu flow".
+Nghiệp vụ có con số thì phải có **≥1 AC chạy trên mẫu số liệu thật**: một tỉnh, một tàu hay một kỳ cụ thể, kèm con số kỳ vọng.
 
-**Thẩm quyền & xử mâu thuẫn (ai chốt flow cuối):** Domain-Specialist là **CỔNG HỢP-LỆ chạy TRƯỚC Optimizer** — loại biến thể sai chuẩn nghiệp vụ; **Specialist có quyền veto** (sai chuẩn = hỏng thật, thắng mọi tối ưu hình thức). Optimizer chỉ chọn **trong các biến thể đã hợp-chuẩn**. Mâu thuẫn không gỡ → **BA-Orchestrator là trọng tài cuối**, ghi conflict + quyết định vào Flow optimization log (§6 ba-spec). Flow "chốt" = qua Specialist (nếu chuyên) + Optimizer; user chỉ xác nhận ở mức ba-spec tổng, không vi mô từng flow.
+**G5 — Chỗ mơ hồ: chọn mặc định NHẸ + đảo ngược được, rồi đưa lên cho chủ dự án.**
+- Gặp luật chưa rõ mức độ, theo thang sau:
+  - **cảnh báo** chứ không chặn,
+  - **ẩn** chứ không xoá,
+  - **lưu nháp** chứ không nộp,
+  - **cho qua kèm ghi nhận** chứ không từ chối.
+- Ghi điểm đó vào §0 "Quyết định cần chủ dự án".
+- CẤM viết "quyết định BA" cho luật **chặn, xoá, tính điểm, tiền hay quyền**.
+- Án lệ: IUU `b759645` (chặn nộp quá chặt), AMS spec 19 NV3 (BA tự chọn "chặn" → chủ dự án đổi sang "chỉ cảnh báo"), mkn-3 `a6dec537` (dựng tính năng xoá, bị chốt "KHÔNG xoá").
 
----
+**G6 — Một khái niệm = một tên. Chốt TỪ VỰNG trước khi viết flow.**
+- Bảng Từ vựng chuẩn gồm: tên dùng, nghĩa, tên CẤM dùng (đồng nghĩa đã lỡ dùng).
+- Flow, AC, nhãn UI và tên biến đều dùng đúng tên này.
+- Án lệ: SDMap `2b19b261` ("lúc thì boat lúc thì monitor rối tùm lum"; 1 vai có 4 tên).
 
-## 4. Rubric "flow tối ưu" (Optimizer chấm — map 1-1 với 6 bệnh)
-
-| Tiêu chí (đạt = ✓) | Diệt bệnh (1-1) |
-|---|---|
-| **Định hướng**: flow gắn đúng 1 nghiệp vụ + 1 owner-user + nằm trong scope IN (§7 ba-spec) | không định hướng |
-| **Input đủ · Output rõ**, quan sát được (không "xử lý xong") | viết chung chung |
-| **Không dead-end**: mọi nhánh có điểm kết; mọi handoff có **người nhận + điều kiện** | treo / bỏ dở |
-| **Cross-user tường minh & tối thiểu**: chỉ cross khi thật cần, mỗi cross ghi rõ | cross lung tung |
-| **Ít bước nhất mà vẫn đủ**: gộp bước thừa, không vòng vo | rối rắm |
-| **Có success metric đo được** (outcome định lượng) | không mục tiêu |
-
-Flow trượt ≥1 tiêu chí → Optimizer trả về Suggester sửa, KHÔNG đưa vào ba-spec. Ghi candidate bị loại + lý do vào **Flow optimization log** (mục 6 của ba-spec) — để /audit về sau truy được.
-
----
-
-## 5. Quy tắc cứng (vi phạm là bug, không phải ý kiến)
-
-**Ranh giới WHAT/HOW (luật vàng):**
-- BA chỉ nói **WHAT + WHY**: user, nghiệp vụ, flow, input/output, rule, acceptance. **KHÔNG** nói HOW-nhìn (màn/layout/màu/nút → ui-design-logic) hay HOW-chạy (code → build).
-- AC/flow nhắc tới `màu | nút | góc | màn hình | sidebar | button | popup` = **sai tầng**, viết lại bằng hành vi.
-
-**User-first:**
-- Không có "user chung chung": **User registry** liệt kê từng loại; mỗi nghiệp vụ buộc đúng 1 **owner-user**. Nghiệp vụ không gắn được owner = nghiệp vụ mồ côi → xoá hoặc gán lại.
-- Nghiệp vụ dính nhiều user → khai **cross-user handoff** (ai→ai, điều kiện); cấm để cross ngầm.
-
-**Flow:**
-- Mỗi flow có **Input** (cần gì để bắt đầu) + **Output** (kết quả quan sát được) + **start/end rõ**. Flow kết thúc lơ lửng = chưa xong.
-- Mỗi flow tối ưu phải qua **≥1 đánh giá** (Optimizer; + Domain-Specialist nếu chuyên) — không tự nhận "tối ưu".
-
-**Acceptance Criteria — mỗi AC PHẢI test được (ai-simple #04):**
-- AC dạng **Given / When / Then**, atomic, map tới đúng 1 flow.
-- **Mỗi AC khai `Test:` (e2e | integration | unit | manual) + `Assert` đo được bằng máy.** Then không quan sát được → viết lại, CẤM để AC "không test được". User flow mới → mặc định E2E (#04 bảng test). BA khai test INTENT, build viết test CODE. Spec vẽ ra mà không test được = chưa xong.
-- **`Assert` phải ĐỊNH LƯỢNG**: chứa ≥1 giá trị/ngưỡng cụ thể (`==`/`<=`/`>=`, count, hoặc trạng-thái-đặt-tên). "đúng / hợp lệ / như mong đợi" = chưa đo được, viết lại. (cổng `ba-verify.sh` WARN nếu Assert thiếu định lượng; BLOCK nếu thiếu hẳn.)
-
-**Elicitation (solo+AI):**
-- Hỏi **1 lượt gộp**, fail-closed: thiếu info → chọn giả định an toàn + ghi **Assumptions**, KHÔNG hỏi lặt vặt. Chỉ **RED** (sửa/xoá AC-flow mà downstream đang phụ thuộc) mới dừng hỏi đúng 1 câu gộp.
+**G7 — Spec ghi TRẠNG THÁI HIỆN TẠI, ngắn, duyệt được trong 2 phút.**
+- §0 "Quyết định cần chủ dự án": ≤7 dòng, gồm mọi thứ không hiển nhiên (vai, quyền, chặn/cảnh báo, ai trả tiền, cái bị bỏ, giả định đang gánh).
+  Chủ dự án chỉ cần đọc mục này là đủ duyệt. Án lệ: ForFish spec 17 dài 471 dòng, được duyệt mù, sau đó 6 commit phải sửa vai.
+- Lịch sử để git giữ. CẤM tường comment `re-verified` (IUU có 122–214 comment).
+- Sửa thì **thay** câu cũ, không chồng thêm "ĐÍNH CHÍNH".
+- Có quyết định chủ dự án đã chốt thì ghi vào §Sổ đã chốt (ngày, lời nguyên văn, luật, thứ canh), không rải khắp spec.
+- Nghiệp vụ lớn hoặc chưa chắc: đề xuất **lát mỏng chạy được + ảnh màn** trước, rồi mới viết spec đầy đủ. Chủ dự án quyết đúng nhất khi đã thấy thứ chạy thật.
 
 ---
 
-## 6. Defer sang ai-simple (KHÔNG tự chế lại nếu skill đó có mặt)
+## 3. Pipeline — theo thứ tự, không nhảy cóc
 
-| Việc | Chủ sở hữu | BA làm gì |
+```
+B0 Sàng        → nhu cầu mơ hồ/mới → chạy; đổi nhỏ rõ → trả về build
+B1 Gom sự thật → ĐỌC: lời chủ dự án (chat/memory/commit body), code + màn đang chạy, dữ liệu thật,
+                 văn bản luật/quy chế, Sổ đã chốt của spec cũ. Ghi nguồn (G1). KHÔNG viết gì chưa đọc.
+B2 Từ vựng     → bảng Từ vựng chuẩn (G6)
+B3 User + vai  → registry có nguồn; vai/quyền theo 3 câu tiền-trách nhiệm-bảo lãnh (G2)
+B4 Nghiệp vụ   → mỗi nghiệp vụ đúng 1 owner + nguồn đòi (G3); cross-user handoff có người nhận +
+                 điều kiện + điểm kết khi treo
+B5 Flow        → Input → Steps → Output · start/end rõ · không dead-end · ≥2 biến thể khi flow có
+                 cross hoặc chuyên môn, loại biến thể có ghi lý do
+B6 Đại lượng   → Từ điển đại lượng đủ 6 ô (G4) cho mọi con số
+B7 AC + chốt   → G/W/T + Test + Assert định lượng; ≥1 AC số thật/nghiệp vụ có số; viết §0 ≤7 dòng (G7);
+                 chỗ mơ hồ theo G5 → `ba-verify.sh` PASS
+```
+
+`ba-spec` là chốt chặn: chưa có thì chưa sang design. Việc nhỏ thì spec ngắn, nhưng §0, Từ vựng và các dòng có nguồn thì luôn phải có.
+Template: `templates/ba-spec.md.template` (format 2). Chi tiết: `references/01..06`.
+
+---
+
+## 4. Team-agent — chỉ khi đáng (không nghi lễ)
+
+Spawn khi có ≥3 nghiệp vụ cross-user, có nghiệp vụ chuyên môn (kế toán, kho, thanh toán, pháp lý, chấm điểm), hoặc user yêu cầu "tối ưu flow". Còn lại thì chạy tuần tự.
+
+| Agent | Việc | Đầu ra bắt buộc |
 |---|---|---|
-| Risk-tier GREEN/YELLOW/RED | ai-simple #06 | Phân loại thay đổi AC/flow theo tier; chỉ RED → 1 ASK gộp |
-| Memory format + luật ≥2x | ai-simple #07 | Ghi preference theo format đó (vd: user luôn muốn flow ngắn hơn an toàn) |
-| Coupling `covers/last_verified/ttl`, verify-on-use, /audit | ai-simple #12 | ba-spec mang frontmatter; verify oracle trước khi triage tin |
-| doc+test sync | ai-simple #04 | AC = test → ba-spec đổi CÙNG COMMIT với code |
-| design-spec, screen/layout/token | ui-design-logic | Gửi user+flow làm input, KHÔNG tự định nghĩa UI |
-| Triage defect, fix loop | ui-ux-triage | Nhận handoff ngược (§7), không tự triage |
+| **Fact-Finder** | B1: đọc code, dữ liệu, lời chủ dự án, văn bản | danh sách sự thật kèm nguồn; câu nào chưa có nguồn thì ghi rõ |
+| **Domain-Specialist** (động) | soi chuẩn nghiệp vụ, **veto** biến thể sai chuẩn | lý do veto trích văn bản hoặc chuẩn ngành |
+| **Red-Team BA** | đóng vai chủ dự án khó tính. Với từng dòng spec, hỏi: *ai đòi? lấy từ đâu? số 0 này là gì? vai này ai duyệt?* | danh sách dòng không có nguồn hoặc vi phạm G1–G7 |
+| **BA-Orchestrator** | ráp spec, trọng tài cuối, viết §0 | spec + §0 |
+
+Bỏ kiểu "Optimizer tự chấm điểm flow mình đề xuất". Án lệ: ForFish spec 08 ghi "Bởi: Orchestrator", tức tự chấm cho chính mình. Đánh giá chỉ có giá trị khi người chấm có nguồn để đối chiếu.
 
 ---
 
-## 7. Reverse handoff từ triage
+## 5. Quy tắc cứng giữ từ v1 (đang chạy tốt theo án lệ)
 
-Triage đẩy về "code KHỚP ba-spec mà vẫn sai" → BA phân loại, **sửa spec không sửa code** (định nghĩa tier: `references/04` + ai-simple #06 — KHÔNG tự chế lại):
+- **WHAT/HOW**: BA chỉ nói user, nghiệp vụ, flow, rule và acceptance. Từ chỉ UI (`button|popup|modal|màn hình|nút bấm`…) xuất hiện trong AC là sai tầng (`ba-verify` BLOCK hoặc WARN).
+- **Owner-user**: mỗi nghiệp vụ có đúng 1 owner. Không có owner là nghiệp vụ mồ côi. Cross-user khai tường minh, có điểm kết khi treo.
+- **Rules R1..Rn** cụ thể và test được (mẫu tốt: IUU spec 12 §9).
+- **AC**: G/W/T, atomic, map tới 1 flow, có `Test:` (e2e|integration|unit|manual) và `Assert` định lượng. AC-ID duy nhất.
+- **Hỏi**: anh Long đã giao quyền tự quyết, nên không hỏi lặt vặt. Nhưng "tự quyết" nghĩa là **chọn mặc định nhẹ theo G5 và đưa lên §0**, không có nghĩa là tự chốt luật nặng. Chỉ RED mới dừng hỏi, gộp thành 1 câu.
+
+## 6. Defer sang ai-simple
+
+| Việc | Chủ | BA làm |
+|---|---|---|
+| Risk-tier | #06 | phân loại thay đổi AC/flow; chỉ RED mới ASK |
+| Memory | #07 | lời chủ dự án lặp ≥2 lần → memory, và ghi vào Sổ đã chốt |
+| Coupling/verify | #12 | frontmatter `covers/last_verified/ttl_days` |
+| doc+test sync | #04 | AC = test; spec đổi CÙNG COMMIT với code |
+| UI | ui-design-logic | gửi user + flow + Từ vựng + Từ điển đại lượng |
+
+## 7. Exit gates (tick khi CHẠY xong)
+
+- [ ] `sh ba-verify.sh --staged` exit 0. Spec format 2 bị BLOCK nếu thiếu §Quyết định cần chủ dự án, §Từ vựng chuẩn, §Từ điển đại lượng, §Sổ đã chốt, hoặc nếu §0 dài quá 7 dòng.
+- [ ] Mọi dòng User/vai/nghiệp vụ có nhãn nguồn. Không `[GIẢ ĐỊNH]` nào sinh luật cứng (G1).
+- [ ] Mỗi vai trả lời đủ tiền / trách nhiệm / bảo lãnh. Vai đặc quyền có người duyệt (G2).
+- [ ] Không nghiệp vụ hay bước nào thiếu nguồn đòi (G3).
+- [ ] Mọi con số có đủ 6 ô từ điển. Có AC chạy trên số thật (G4).
+- [ ] Luật chặn/xoá/tiền/quyền mơ hồ đã hạ xuống mặc định nhẹ và nằm trong §0 (G5).
+- [ ] 1 khái niệm = 1 tên (G6). §0 ≤7 dòng. Không tường re-verified (G7).
+- [ ] KHÔNG viết code, KHÔNG đụng DB.
+
+## 8. Reverse handoff
 
 | Tình huống | Hành động | Tier |
 |---|---|---|
-| **Spec sai** — AC viết sai hành vi | Sửa AC/flow | sửa AC downstream phụ thuộc = **RED** (1 ASK) |
-| **Nhu cầu thiếu** — chưa có AC cho ca này | Thêm AC/flow mới | GREEN/YELLOW |
-| **Nhu cầu mới** — ngoài scope gốc | Quyết scope (B3 Priority); thêm hoặc hoãn | YELLOW |
+| Spec sai | sửa AC/flow (thay câu cũ, không chồng thêm) | AC downstream phụ thuộc = RED |
+| Thiếu ca | thêm AC | GREEN/YELLOW |
+| Ngoài scope | quyết scope | YELLOW |
+| Chủ dự án sửa một quyết định | ghi **Sổ đã chốt** + thứ canh (test/grep) để lần sau không hỏng lại (án lệ mkn-3 `07f252e7`→`e1ef3320`) | GREEN |
 
-Sửa xong → bump `last_verified`, kích lại design/build nếu cần. Ghi 1 dòng vào History của ba-spec.
+Sửa xong thì bump `last_verified`.
 
----
-
-## 8. Exit gates (tự tick khi CHẠY xong, không pre-tick)
-- [ ] **CỔNG MÁY**: `bash ba-verify.sh --staged` exit 0 — chặn ba-spec 0 AC / AC thiếu `Test:`/`Assert`. Wire vào pre-commit để CHẶN THẬT (không chỉ honor-system). Đây là cơ giới hoá luật "nghiệp vụ vẽ ra mà không test được = chưa xong".
-- [ ] Mọi nghiệp vụ có đúng 1 owner-user; không nghiệp vụ mồ côi
-- [ ] Mọi cross-user handoff có người nhận + điều kiện; Cross-User-Integrity báo 0 điểm gãy
-- [ ] Mọi flow có Input/Output + start/end; không dead-end
-- [ ] Mỗi flow tối ưu có ≥1 đánh giá; Flow optimization log ghi candidate bị loại + lý do
-- [ ] Mọi AC dạng G/W/T, map tới 1 flow, KHÔNG chứa từ UI, **có `Test:` + `Assert` đo được** (không AC nào "không test được"; flow mới → E2E)
-- [ ] `ba-spec` đủ frontmatter `covers/last_verified/ttl_days`; nằm trong app-map
-- [ ] Assumptions ghi đủ; chỉ RED mới ASK
-- [ ] TeamDelete sau khi user confirm done · KHÔNG viết code · KHÔNG đụng DB
-
----
-
-## 9. Anti-patterns
-| Anti-pattern | Đúng |
-|---|---|
-| Viết yêu cầu theo feature, không theo user | User-first: registry → nghiệp vụ → owner |
-| Nghiệp vụ không owner, cross ngầm | Mỗi nghiệp vụ 1 owner; cross khai tường minh (§B3) |
-| Flow "xử lý xong" mơ hồ | Input/Output cụ thể, quan sát được |
-| Flow treo, không điểm kết | start/end rõ, no dead-end (rubric §4) |
-| Tự nhận flow "tối ưu" không đánh giá | Qua Optimizer + Domain-Specialist nếu chuyên |
-| AC mô tả nút/màn | AC là hành vi G/W/T, anti-UI (§5) |
-| Hỏi user lặt vặt từng câu | 1 lượt gộp, fail-closed, chỉ RED mới hỏi |
-| Tự chế risk-tier/memory/coupling | Defer ai-simple (§6) |
-| Sửa code khi triage handoff về | Sửa SPEC, không sửa code (§7) |
-
----
-
-## 10. Cross-reference
-- **Nền**: `ai-simple-product-dev` (#04 sync, #05 LOGIC/REQUEST, #06 tier, #07 memory, #12 coupling) — defer.
-- **Pha sau**: `ui-design-logic` đọc ba-spec (user-ladder + flow) → design-spec.
-- **Pha vận hành**: `ui-ux-triage` đọc AC làm oracle; đẩy reverse handoff về đây.
-- Tài liệu chi tiết: `references/01..05`. Template: `templates/ba-spec.md.template`. Eval: `evals/evals.json`. **Cổng máy: `ba-verify.sh`** (chặn ba-spec thiếu test — wire vào pre-commit).
+## 9. Cross-reference
+- Án lệ: `docs/adr/003-an-le-ba-ui-tu-lich-su-commit.md` (repo nguồn ai-simple).
+- `references/01` user/nghiệp vụ · `02` flow · `03` AC · `04` reverse/risk · `05` ai-simple · `06` **nguồn sự thật + từ điển đại lượng (v2)**.
+- Template `templates/ba-spec.md.template` · eval `evals/evals.json` · cổng `ba-verify.sh`.

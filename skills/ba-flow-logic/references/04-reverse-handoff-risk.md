@@ -21,7 +21,7 @@ Phân loại 3 ca:
 | **Nhu cầu thiếu** | Có ca thật chưa AC nào phủ | Thêm AC/flow mới (quay B4–B6 cho nghiệp vụ đó) | GREEN/YELLOW |
 | **Nhu cầu mới** | Ngoài scope gốc | Quyết scope (B3 Priority): nhận thì thêm, không thì hoãn + ghi OUT | YELLOW |
 
-Quy trình: nhận handoff → tái chạy đúng nghiệp vụ liên quan (không làm lại cả spec) → cập nhật AC/flow → **bump `last_verified`** + ghi 1 dòng History → nếu hành vi đổi, kích lại `ui-design-logic`/build.
+Quy trình: nhận handoff → tái chạy đúng nghiệp vụ liên quan (không làm lại cả spec) → cập nhật AC/flow → **bump `last_verified`** + (format 2) THAY câu cũ, lời chủ dự án ghi vào Sổ đã chốt — lịch sử để git; format cũ: 1 dòng History → nếu hành vi đổi, kích lại `ui-design-logic`/build.
 
 > Vòng này đóng pipeline: BA→design→build→triage→**BA**. Nó là lý do ba-spec phải `covers` UI code — code đổi thì ba-spec SUSPECT, triage biết oracle có thể cũ trước khi đổ lỗi cho code.
 

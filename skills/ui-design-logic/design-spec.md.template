@@ -4,26 +4,41 @@ covers: {{src/app/...}}
 last_verified: {{YYYY-MM-DD}}
 ttl_days: 90
 
-<!-- ai-simple-version: 1.12.0 — template sống trong skills/ui-design-logic (self-contained, Wave 3).
-     Format bị ép bởi design-verify.sh (lint section) — các section dưới là BẮT BUỘC. -->
+<!-- ai-simple-version: 1.26.0 — template sống trong skills/ui-design-logic.
+     spec-format: 2 — design-verify BLOCK nếu thiếu: Thang người dùng, Screen map (có cột Mẫu tham chiếu),
+     Ma trận trạng thái, Điều hướng, Sổ đã chốt. Ghi TRẠNG THÁI HIỆN TẠI. Lịch sử để git (ADR 003 G9). -->
 
 ## Thang người dùng
-| Loại user | Muốn thấy gì | Truyền tải | Action tiếp |
-|---|---|---|---|
-| {{Public/Member/Admin}} | {{giá trị nhìn thấy}} | {{cách truyền tải}} | {{action}} |
+<!-- Bối cảnh QUAN SÁT ĐƯỢC + nguồn. KHÔNG nhân khẩu học tưởng tượng (G1): cỡ chữ theo mặc định nền tảng. -->
+| Loại user | Muốn thấy gì | Truyền tải | Action tiếp | Nguồn |
+|---|---|---|---|---|
+| {{Chủ tàu}} | {{…}} | {{…}} | {{…}} | {{[chủ dự án YYYY-MM-DD]}} |
 
 ## Screen map
-| # | Màn | Vào từ | User đến để làm gì | Step tiếp theo | Primary |
-|---|---|---|---|---|---|
-| 1 | {{Màn}} | {{entry}} | {{goal}} | {{next}} | {{1 primary duy nhất}} |
+| # | Màn | Vào từ | User đến để làm gì | Step tiếp theo | Primary | Mẫu tham chiếu (app + chép gì) |
+|---|---|---|---|---|---|---|
+| 1 | {{Màn}} | {{entry}} | {{goal}} | {{next}} | {{1 primary duy nhất}} | {{Facebook: ô soạn bài 1 dòng, chủ đề tự đoán}} |
 
 ## Ma trận trạng thái
-| Màn hình | Chưa login | Trống | Đang tải | Lỗi | Dữ liệu cực đoan |
+| Màn hình | Chưa login | Trống | Đang tải | Lỗi (qua hàm thông báo chung, không mã thô) | Dữ liệu cực đoan |
 |---|---|---|---|---|---|
-| {{Màn}} | {{redirect?}} | {{empty state}} | {{skeleton}} | {{retry}} | {{tràn/ngắn}} |
+| {{Màn}} | {{redirect?}} | {{1 cụm + 1 CTA}} | {{skeleton}} | {{retry}} | {{tràn/ngắn}} |
+
+## Điều hướng
+| Màn | Back làm gì | Đường về gốc | Hành động phá huỷ → Undo/xác nhận |
+|---|---|---|---|
+| {{Màn}} | {{đóng sheet trước, giữ chữ đang gõ / màn đầu: không có Back}} | {{dock}} | {{—}} |
+
+## Không làm (đã cân nhắc, bỏ — để agent sau không tự thêm lại)
+- {{Lọc theo chủ đề trên feed — không ai đòi (G3)}}
 
 ## Platform
 Mobile-first {{375px}} · desktop {{1280px}} — touch target 44/48, contrast 4.5:1 + dark mode, focus ring không bị huỷ.
 
 ## Nghiệm thu
-Screenshot từng màn ở từng trạng thái (QA đối chiếu ma trận) — {{đường dẫn thư mục ảnh}}.
+Screenshot từng màn ở từng trạng thái (QA đối chiếu ma trận + §0b) — {{đường dẫn thư mục ảnh}}.
+
+## Sổ đã chốt (đọc TRƯỚC khi sửa vùng này)
+| Ngày | Lời chủ dự án (nguyên văn, ngắn) | Luật | Canh bởi |
+|---|---|---|---|
+| {{2026-10-24}} | {{"facebook có lọc đâu?"}} | {{feed không có chip lọc}} | {{test/grep …}} |

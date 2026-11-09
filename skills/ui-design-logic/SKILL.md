@@ -31,6 +31,68 @@ BA (nhu cầu→ba-spec) → [ui-design-logic] (→design-spec) → build → ui
 - **Skill này = pha THIẾT KẾ.** Nhận ba-spec (WHAT), quyết HOW-nhìn → design-spec; không đụng WHAT (→BA), không sửa defect app chạy (→triage).
 - **Handoff sang security-logic**: màn LỘ DATA (hiển thị data nhạy cảm sai đối tượng trong user-ladder) hoặc design chạm UI auth/payment → chuyển `security-logic` review (NT14) trước khi chốt design-spec; nhận lại finding dạng ràng buộc hiển thị.
 
+## 0b. Tám lỗi gốc của UI — kiểm TRƯỚC khi vẽ, ép ở design-spec [INV]
+
+> v2 (2026-11-09), án lệ `docs/adr/003-an-le-ba-ui-tu-lich-su-commit.md`. Phần lớn công sửa UI của
+> anh Long KHÔNG đến từ màu, spacing hay token. Nó đến từ 8 thói quen dưới đây. Luật ở phần sau vẫn
+> giữ, nhưng **8 điều này kiểm trước**.
+
+**G1 — Không thiết kế cho persona tưởng tượng.**
+- Cỡ chữ, cỡ nút và mật độ dùng **mặc định nền tảng** (system font size, M3/HIG).
+- CẤM luật "chữ to / nút to cho người lớn tuổi, tay ướt, ngoài nắng" nếu không có `[chủ dự án]` chốt.
+- Muốn hỗ trợ chữ lớn thì làm **tuỳ chọn trong Cài đặt**, mặc định là "thường".
+- Án lệ: SDMap `9f34159c`, ForFish `7c9f8cd9` (luật 18px/56px sống 4 tháng rồi bị ra lệnh xoá).
+
+**G3 — Mỗi phần tử trên màn phải TRUY ĐƯỢC NGUỒN.**
+- Áp cho: nút, tab, chip lọc, số đếm, badge, dòng chữ, hộp hỏi, bước.
+- Phần tử phải chỉ ra được 1 AC, 1 câu chủ dự án, hoặc 1 nhu cầu điều hướng bắt buộc. Không chỉ ra được thì không vẽ.
+- Mặc định: tab/chip/ô lọc **không kèm số đếm**. **Không lọc** nếu danh sách là feed. **Không dòng giải thích**.
+- Án lệ: ForFish `42442c6f` ("facebook có lọc đâu?"), mkn-3 `0053649d` (bỏ số đếm toàn fe-admin), SDMap `921534b9`, `cb610882`.
+
+**G4 — Tự làm thay vì bắt user làm.**
+- Suy được (tỉnh từ vị trí, chủ đề từ nội dung) thì tự suy, cho sửa.
+- Tải được thì tự tải, không hỏi [Tải]/[Để sau].
+- Hành động đảo ngược được thì làm luôn kèm Undo, không hộp xác nhận.
+- Chỉ hỏi khi việc đó không đảo ngược được.
+- Án lệ: SDMap `b92ac04f` ("tự down đi, đừng có hỏi"), ForFish `20d70cae`, `45213b24`.
+
+**G5 — Chép MẪU QUEN, không chế tương tác.**
+- Mỗi màn trong Screen map khai **Mẫu tham chiếu**: app mà user mở hằng ngày (Facebook, Zalo, Google Maps, Messenger, MarineTraffic…) và **chép điều gì**.
+- Lệch khỏi mẫu phải có lý do.
+- Trước khi tạo màn hay component mới, tìm trong repo xem đã có cái tương tự chưa (`grep` route và component), rồi tái dùng.
+- Án lệ: SDMap `9c8d7b30` ("xoá hết đi viết lại" thành luồng kiểu Google), ForFish `ee799e39` ("inline chứ đừng nhảy"), `ebf57cc9` ("tham khảo các bên khác").
+
+**G10 — Chỉ đổi ĐÚNG thứ được yêu cầu.**
+- Yêu cầu "sắp xếp lại" thì không đổi viền, mật độ hay menu.
+- Mockup hay ảnh tham khảo: tách **ý chính** (thứ user nói thành lời) khỏi **minh hoạ** (phần còn lại trong ảnh). Chỉ làm ý chính.
+- Đổi lớn: làm lát mỏng, gửi screenshot, rồi mới làm rộng.
+- Án lệ: AMS GD-11 `a8e43aea`/`4b45374b` (trả lại kiểu cũ cùng ngày), GD-12; mkn-3 `8396989a`→`4d392262`.
+
+**G11 — Không lộ ruột hệ thống.**
+- Không hiện id, uuid, mã enum, mã lỗi, tên bảng, `[object Object]`, `undefined`, `NaN`.
+- Mọi enum đi qua 1 bảng nhãn. Mọi lỗi đi qua 1 hàm thông báo thân thiện dùng chung. Sửa ở hàm chung, không vá từng chỗ.
+- Án lệ: mkn-3 `ebac43bf`, `f7d9b00b`, `1869db90`; SHT-CRM `50b592f`; AI-Assistant `f74f2d4`.
+
+**G12 — Mỗi con số, màu hay khuyến nghị khai "đọc xong user sẽ LÀM gì".**
+- Có dữ liệu chống lưng; không có thì không hiện.
+- Không dẫn user tới vi phạm (ví dụ vẽ vùng cá ngoài ranh giới).
+- Không hiện % hay điểm giả chính xác.
+- Xếp hạng, màu đỏ hay tô theo độ lớn chỉ dùng khi có ngưỡng do chủ dự án chốt. Mặc định là màu trung tính hoặc màu định danh.
+- Án lệ: ForFish `9e707896`, `910c54e4`, `b37eb0a3`; IUU `25ff923`, `a69e382`.
+
+**G13 — Đường về là bắt buộc.**
+- Design-spec có bảng **Điều hướng**: mỗi màn có Back làm gì, và đường về gốc.
+- Back đóng lớp trên cùng (sheet, dialog) trước, và **giữ chữ đang gõ**.
+- Màn đầu tiên không có Back.
+- Hành động phá huỷ (đăng xuất, xoá) có Undo hoặc xác nhận.
+- Án lệ: ForFish `5b5ba990` ("làm sao quay về?"), audit `f4d8fea2` X1/X6; SDMap `bdf5167c`.
+
+**Sổ đã chốt (chống hỏng lại — G9).**
+- Mỗi lần chủ dự án sửa UI ("bỏ cái X", "đừng Y"), ghi 1 dòng vào `## Sổ đã chốt` của design-spec: ngày, lời nguyên văn, luật, thứ canh.
+- Đọc sổ trước khi đụng vùng đó.
+- Án lệ: mkn-3 `07f252e7` (ẩn) → D149 (mở lại) → `e1ef3320` (ẩn lần nữa).
+- Design-spec ghi **trạng thái hiện tại**. Lịch sử để git. Không tường `re-verified` (SDMap design-spec dài 3782 dòng, AMS có ô bảng 2000 ký tự).
+
 ## Khi nào kích hoạt
 
 - User yêu cầu build/design bất kỳ UI nào (web, app, dashboard, landing, form, report)
@@ -44,13 +106,18 @@ BA (nhu cầu→ba-spec) → [ui-design-logic] (→design-spec) → build → ui
 ## Pipeline 7 bước — BẮT BUỘC theo thứ tự, không nhảy cóc
 
 ```
-0. Brief        → ĐỌC ba-spec nếu app-map có (do ba-flow-logic sinh): user-ladder seed từ §User registry, flow/screen từ §Flows, AC làm ràng buộc hành vi → KHÔNG hỏi lại user/job. KHÔNG có ba-spec → tự thu brief: ai dùng, làm gì, platform, logo/brand
+0. Sự thật     → ĐỌC: Sổ đã chốt (design-spec + ba-spec), lời chủ dự án (chat/memory/thân commit vùng này),
+                 màn + component ĐANG CÓ (tái dùng trước — G5), ba-spec (user/flow/AC/Từ vựng/Từ điển đại lượng).
+                 KHÔNG có ba-spec → tự thu brief, mọi khẳng định về user gắn nguồn; [GIẢ ĐỊNH] không thành luật (G1)
 1. IA + hành vi → THANG USER (loại × 3 câu — TIẾP NỐI từ ba-spec nếu có, không dựng lại) → object model, flow map, screen map + BUDGET, entry/step-tiếp/trạng thái/action→expectation → viết DESIGN-SPEC.md
 2. Layout       → grid, density budget từng màn hình, quy tắc collapse/expand
 3. Components   → tra decision table: component nào, text viết sao
 4. Tokens       → màu (hoà logo), font, spacing — stack khoá React+Tailwind+shadcn
 5. Platforms    → desktop/tablet/mobile = 3 design con; iOS theo HIG, Android theo Material
-6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, check, sửa, lặp
+6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, check, sửa, lặp.
+                 Trước khi báo xong, soi từng screenshot theo §0b: phần tử nào không truy được nguồn (G3)?
+                 chỗ nào bắt user làm việc máy làm được (G4)? có lộ id/enum/mã lỗi (G11)? Back có đóng lớp
+                 trên cùng và giữ chữ đang gõ (G13)? Có làm gì ngoài phạm vi được yêu cầu (G10)?
 ```
 
 **DESIGN-SPEC.md là chốt chặn**: chưa có spec (bước 1) thì CHƯA được viết code UI.
