@@ -1,0 +1,50 @@
+# {{NN}} — Thiết kế kỹ thuật: {{TÊN TÍNH NĂNG / PHÂN HỆ}}
+
+> Load khi: task chạm dữ liệu, API, sự kiện hoặc tích hợp của {{phân hệ}}
+covers: {{src/...}}
+last_verified: {{YYYY-MM-DD}}
+ttl_days: 90
+
+> **Mục đích**: pha sau ba-spec cho phần KHÔNG có giao diện (dịch vụ nền, API, tích hợp, xử lý ngoại tuyến).
+> ba-spec trả lời WHAT; doc này trả lời HOW-chạy ở mức quyết định, không chép code. Phần có màn hình vẫn đi qua design-spec.
+> Doc tuỳ chọn, không có cổng máy. Quyết định kiến trúc lớn ghi ADR riêng và trỏ từ đây.
+
+## 1. Nghiệp vụ được phục vụ
+| Nghiệp vụ / AC của ba-spec | Thành phần đảm nhận |
+|---|---|
+| {{NV1 · AC-1, AC-2}} | {{dịch vụ/hàm/bảng}} |
+
+## 2. Mô hình dữ liệu
+| Đối tượng | Bảng / kho | Khoá + ràng buộc | Vòng đời (trỏ ba-spec §5b) |
+|---|---|---|---|
+| {{Đơn}} | {{orders}} | {{id ULID; unique(...)}} | {{chờ duyệt → đã duyệt / từ chối}} |
+
+Thay đổi schema: {{migration nào, hoàn tác thế nào}} — phân loại GREEN/YELLOW/RED theo nguyên tắc 06.
+
+## 3. Hợp đồng
+| Giao diện | Vào | Ra | Lỗi (mã máy đọc) | Gọi lại an toàn? |
+|---|---|---|---|---|
+| {{POST /v1/orders}} | {{...}} | {{...}} | {{ORDER_DUPLICATE}} | {{có — idempotency key}} |
+| {{sự kiện order.approved}} | — | {{payload}} | — | {{giao ít nhất một lần}} |
+
+Ranh giới dùng chung với repo/hệ thống khác → `contract-doc.md.template` (nguyên tắc 10).
+
+## 4. Phụ thuộc ngoài
+| Hệ thống | Dùng để | Timeout / thử lại | Khi nó chết thì |
+|---|---|---|---|
+| {{...}} | {{...}} | {{...}} | {{hành vi dự phòng — trỏ AC nhánh lỗi}} |
+
+## 5. Ràng buộc vận hành (trỏ ba-spec §9b)
+| Ràng buộc | Quyết định thiết kế đáp lại |
+|---|---|
+| {{mất kết nối nhiều giờ}} | {{kho cục bộ + đồng bộ khi có mạng; ID sinh được ngoại tuyến}} |
+| {{băng thông hẹp}} | {{...}} |
+| {{dữ liệu cá nhân}} | {{không ghi vào log; lưu ở đâu}} |
+
+## 6. Kiểm thử
+| AC | Loại test | Điểm kiểm |
+|---|---|---|
+| {{AC-1}} | {{integration}} | {{...}} |
+
+## 7. Chưa quyết / giả định
+- {{...}}

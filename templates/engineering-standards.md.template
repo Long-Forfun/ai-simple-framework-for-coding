@@ -1,0 +1,61 @@
+# {{NN}} — Chuẩn kỹ thuật chung: {{TÊN PROJECT / CÔNG TY}}
+
+> Load khi: viết hoặc soát code mới, thêm endpoint/bảng/module, onboard người hoặc agent mới
+covers: {{src}}
+last_verified: {{YYYY-MM-DD}}
+ttl_days: 180
+
+> **Mục đích**: mọi người và mọi agent viết code "cùng một giọng". Chỉ ghi quy ước ĐÃ CHỐT của project này —
+> mục nào chưa chốt thì ghi `chưa chốt`, đừng điền quy ước chung chung cho đủ bảng. Doc tuỳ chọn, không có cổng máy:
+> thứ cần máy chặn thì đưa vào linter/hook của project rồi ghi tên công cụ ở cột "Ép bởi".
+
+## 1. Từ vựng nghiệp vụ
+Nguồn duy nhất là mục **Thuật ngữ** của các ba-spec ({{đường dẫn}}). Code, tên bảng, nhãn UI dùng đúng chữ đó.
+Không lặp bảng ở đây — chỉ ghi quy tắc chuyển sang tên trong code: {{vd `đơn chờ duyệt` → `pendingOrder`, bảng `orders.status = 'pending'`}}.
+
+## 2. Đặt tên
+| Đối tượng | Quy tắc | Ví dụ đúng | Ép bởi |
+|---|---|---|---|
+| Biến / hàm | {{camelCase; hàm = động từ + danh từ}} | {{verifyQrToken}} | {{eslint rule / review}} |
+| Kiểu / component | {{PascalCase}} | {{SessionBanner}} | {{...}} |
+| Hằng số | {{SCREAMING_SNAKE_CASE}} | {{TOKEN_TTL_SEC}} | {{...}} |
+| Boolean | {{tiền tố is/has/can/should}} | {{isOffline}} | {{...}} |
+| Bảng / cột | {{snake_case; mốc thời gian `*_at` theo UTC}} | {{created_at}} | {{...}} |
+| Định danh | {{kiểu ID + lý do, vd ULID vì sinh được khi mất mạng}} | {{...}} | {{...}} |
+
+Tên bị cấm trong project này: {{vd `data`, `temp`, `result`, viết tắt tự chế}}.
+
+## 3. Hợp đồng API và mã lỗi
+Ranh giới dùng chung giữa nhiều repo/hệ thống ghi theo `contract-doc.md.template` (nguyên tắc 10) — ở đây chỉ ghi quy ước nội bộ:
+- Mẫu phản hồi thành công: {{vd `{ data, meta: { requestId } }`}}
+- Mẫu phản hồi lỗi: {{vd `{ error: { code, message, details }, meta }`}} — `code` cho máy và không đổi giữa các phiên bản; `message` cho người dùng.
+- Mã lỗi: {{`<DOMAIN>_<REASON>` viết hoa}}. Giao diện rẽ nhánh theo `code`, không theo nội dung `message`.
+- Mã HTTP dùng trong project: {{400 dữ liệu vào sai · 401 chưa xác thực · 403 thiếu quyền · 404 · 409 xung đột · 422 nghiệp vụ từ chối · 429 · 5xx}}
+
+## 4. Phân lớp và pattern bắt buộc
+| Tầng | Chứa gì | Không được |
+|---|---|---|
+| {{Giao tiếp (controller/route)}} | {{nhận vào, kiểm dữ liệu, trả ra}} | {{chứa quy tắc nghiệp vụ}} |
+| {{Nghiệp vụ (use case)}} | {{một hàm công khai = một use case}} | {{gọi thẳng hệ thống ngoài}} |
+| {{Hạ tầng (DB, client ngoài)}} | {{truy vấn, gọi ngoài có timeout + thử lại}} | {{quyết định nghiệp vụ}} |
+
+Pattern bắt buộc và lý do nằm ở ADR: {{ADR-NN idempotency · ADR-NN outbox · ...}}. Quy tắc nghiệp vụ chỉ sống ở một tầng; giao diện ẩn nút không phải là phân quyền.
+
+## 5. Vùng nhạy cảm — người chịu trách nhiệm tự viết và soát
+| Vùng | Path | Người giữ |
+|---|---|---|
+| {{Xác thực, phân quyền}} | {{src/auth/**}} | {{tên/vai}} |
+| {{Dòng tiền}} | {{...}} | {{...}} |
+
+Khai cùng danh sách path này vào biến `SEC_SENSITIVE_PATHS` của pre-commit hook: hook sẽ **cảnh báo** khi commit chạm vùng đó.
+Đó là cảnh báo, không phải chặn — quy định "agent không tự viết vùng này" do người giữ vùng và bước soát code thực thi.
+
+## 6. Định nghĩa xong theo vai
+| Vai | Xong khi |
+|---|---|
+| {{Backend}} | {{đúng AC · có test tự động · migration hoàn tác được và đã chạy thử · doc cập nhật cùng commit}} |
+| {{Frontend}} | {{khớp design-spec trên ma trận thiết bị · đủ trạng thái tải/rỗng/lỗi · không còn chuỗi cứng}} |
+| {{Mọi vai}} | {{các cổng tự động đều đạt · commit đúng quy ước, một thay đổi logic}} |
+
+## 7. Nhịp làm việc
+{{chu kỳ, buổi trình diễn, khi nào báo trễ, ai duyệt hợp nhất}}

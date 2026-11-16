@@ -4,6 +4,39 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.27.0 — 2026-11-16 (doctor soi spec trên đĩa + chuẩn kỹ thuật chung + thiết kế kỹ thuật cho phần không UI)
+
+Nguồn: plan cuối sau v1.26.0, qua 1 vòng review độc lập (subagent context sạch — trả REVISE, 9 điểm sửa đều đã nhận).
+
+- **`doctor` soi spec ĐANG NẰM TRÊN ĐĨA** (`specOnDiskChecks`): chạy `ba-verify.sh` + `design-verify.sh` của package ở chế độ
+  toàn-repo. Chỉ PASS/WARN, không bao giờ FAIL. Vì sao: cổng commit chỉ soi file staged — đo trên ForFish có 3/10 ba-spec
+  nằm trên nhánh chính với 0 AC. Chạy bản của PACKAGE chứ không qua junction (3/4 repo tiêu thụ không có junction
+  ba-flow-logic). Đo trên 4 repo thật: ForFish WARN 3 file, SDMap/AMS-Aqua/CRM PASS, không thêm dòng FAIL nào.
+- **`engineering-standards.md.template`** (tuỳ chọn, không gate) — chuẩn chung của đội/công ty: từ vựng (trỏ Thuật ngữ của
+  ba-spec), đặt tên, mẫu phản hồi API + mã lỗi, phân lớp + pattern (trỏ ADR), vùng nhạy cảm (trỏ `SEC_SENSITIVE_PATHS` —
+  hook chỉ CẢNH BÁO, không chặn), định nghĩa xong theo vai. `init` cài vào `docs/_templates/`.
+- **`tech-design.md.template`** (tuỳ chọn, không gate) — pha sau ba-spec cho phần không giao diện. KHÔNG phải skill thứ
+  sáu, số bản sắc giữ nguyên. ba-flow-logic §2 + ref 05 chỉ đường; +1 eval.
+- **`triage-verify.sh` chạy được dưới dash** — CI Ubuntu đỏ từ trước v1.26.0 vì here-string `<<<`.
+
+A/B của v1.26.0 (cùng 2 yêu cầu thật — VAT cố định ở CRM, dùng thử premium ở ForFish; skill v1.25 so với v1.26, mỗi nhánh 1 lần):
+
+| Chỉ số (tổng 2 spec) | Skill cũ | Skill mới |
+|---|---|---|
+| Rule có AC dẫn ID | 0/27 | 28/31 |
+| Handoff có AC dẫn ID | 0/8 | 7/7 |
+| Rule có ghi nguồn | 0/27 | 31/31 |
+| Spec có Thuật ngữ + vòng đời + ràng buộc | 0/2 | 2/2 |
+| Dòng Phản biện, số điểm tự bắt được | 0 | 9 điểm (sửa 6) |
+| Số AC | 57 | 50 |
+| BLOCK của ba-verify | 0 | 0 |
+
+Giới hạn, nói thẳng: n=1 mỗi nhánh; các chỉ số đo việc TUÂN luật mới, chưa đo spec đúng nghiệp vụ hơn; cả hai tính năng
+đã có code trong repo nên nhánh mới (đọc hiện trạng) có lợi thế; subagent không tạo được context sạch thật nên Critic
+chạy dạng tự đọc lại ở lượt riêng — và spec tự ghi rõ điều đó.
+
+- **RE-APPLY**: chạy `ai-simple doctor` ở project, xử các ba-spec/design-spec bị WARN "trên đĩa" (bổ sung AC hoặc đổi tên file nếu không phải spec)
+
 ## v1.26.0 — 2026-11-16 (BA + design: người viết không tự chấm, luật có nguồn, hướng hình trước khi code)
 
 Nguồn: rà soát theo lời than "AI làm BA và Design quá kém, UI ra AI style" + 1 vòng phản biện độc lập (subagent context

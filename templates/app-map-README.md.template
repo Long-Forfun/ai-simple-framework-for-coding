@@ -46,6 +46,8 @@
 | 20 | 20-recent-features.md | Buffer cho feature mới chưa stable |
 | 21 | 21-feature-workflow.md | Pre-flight + plan template |
 | 22 | 22-test-organization.md | Test structure + naming |
+| — | (tuỳ chọn) chuẩn kỹ thuật chung | Quy ước của đội/công ty: đặt tên, mẫu phản hồi API + mã lỗi, phân lớp, vùng nhạy cảm, định nghĩa xong — viết từ docs/_templates/engineering-standards.md.template khi đội ≥ 2 người hoặc có chuẩn công ty |
+| — | (tuỳ chọn) thiết kế kỹ thuật | Pha sau ba-spec cho phần không giao diện (dịch vụ nền, API, tích hợp) — viết từ docs/_templates/tech-design.md.template |
 
 ---
 

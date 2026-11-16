@@ -66,7 +66,7 @@ B5 Tối ưu flow  → TEAM-AGENT: suggest biến thể → chấm rubric → fl
 B6 AC từ flow tối ưu → Given/When/Then dựa Input/Output = ORACLE → viết ba-spec.md   ← CHỐT CHẶN
 ```
 
-**`ba-spec` là chốt chặn**: chưa có ba-spec (B6) thì CHƯA chuyển sang design. Spec nhỏ cho việc nhỏ — thêm 1 nghiệp vụ thì spec ngắn, nhưng phải có, vì nó ép trả lời "nghiệp vụ này của USER nào, vào gì ra gì, đúng là gì" trước khi vẽ màn.
+**`ba-spec` là chốt chặn**: chưa có ba-spec (B6) thì CHƯA chuyển sang design. [DEF — ép bởi người soát; chưa có cổng máy] Phần KHÔNG có giao diện (dịch vụ nền, API, tích hợp, xử lý ngoại tuyến) thì pha sau ba-spec là doc thiết kế kỹ thuật (`docs/_templates/tech-design.md.template`: mô hình dữ liệu, hợp đồng, phụ thuộc ngoài, ràng buộc vận hành) thay cho design-spec; phần có màn hình vẫn qua `ui-design-logic`. Spec nhỏ cho việc nhỏ — thêm 1 nghiệp vụ thì spec ngắn, nhưng phải có, vì nó ép trả lời "nghiệp vụ này của USER nào, vào gì ra gì, đúng là gì" trước khi vẽ màn.
 
 Template đầy đủ: `templates/ba-spec.md.template`. Chi tiết từng bước: `references/`.
 

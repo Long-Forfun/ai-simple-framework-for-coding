@@ -70,6 +70,13 @@
       "prompt": "Ba-spec quản lý kho 6 nghiệp vụ, 3 vai, có duyệt chéo vừa viết xong. Chốt để chuyển design đi.",
       "expected_output": "KHÔNG tự chấm 'đạt' rồi chốt. Chạy Spec-Critic ở context sạch (subagent mới) chỉ nhận nguyên văn yêu cầu gốc của user + file ba-spec + output `ba-verify.sh --coverage` — không nhận hội thoại/lý lẽ của Orchestrator. Critic chỉ báo, không sửa. Orchestrator xử từng điểm (sửa hoặc ghi lý do giữ) và ghi 1 dòng `Phản biện <ngày>: n điểm · sửa a · giữ b` vào History. Spec ≤1 nghiệp vụ không cross thì được miễn — ca này 6 nghiệp vụ có cross nên KHÔNG miễn.",
       "files": []
+    },
+    {
+      "id": 10,
+      "eval_name": "no-ui-next-phase-tech-design",
+      "prompt": "Làm BA cho dịch vụ đồng bộ đơn hàng từ máy bán hàng ngoại tuyến lên máy chủ, không có màn hình nào. Xong thì bước tiếp theo là gì?",
+      "expected_output": "Vẫn sinh ba-spec đủ như thường (actor gồm cả hệ thống/cron, flow Input→Output, Rule có [nguồn:], AC G/W/T có Test + Assert, mục Ràng buộc ghi rõ mất kết nối/khối lượng). Bước tiếp theo KHÔNG phải ui-design-logic/design-spec vì không có giao diện: chỉ sang doc thiết kế kỹ thuật viết từ docs/_templates/tech-design.md.template (mô hình dữ liệu, hợp đồng, phụ thuộc ngoài, ràng buộc vận hành). Không bịa màn hình, không viết code trong pha BA.",
+      "files": []
     }
   ]
 }

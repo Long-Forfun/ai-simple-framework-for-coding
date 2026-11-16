@@ -42,6 +42,29 @@ function sh(scriptAndArgs, opts = {}) {
   return { status: r.status === null ? 1 : r.status, stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
+// v1.27.0 — spec ĐANG NẰM TRÊN ĐĨA có qua cổng không. Cổng commit chỉ soi file staged, nên spec viết trước
+// khi có cổng (hoặc commit lúc junction chưa cài) nằm trên nhánh chính mà không ai biết — đo 2026-11-16:
+// 3/10 ba-spec của ForFish có 0 AC. Chạy verifier CỦA PACKAGE (không qua junction: 3/4 repo tiêu thụ không
+// có junction ba-flow-logic, 1 repo giữ bản copy cũ). Chỉ PASS/WARN — không bao giờ FAIL doctor: spec cũ
+// viết theo luật cũ không phải setup hỏng. Không có spec / không có sh → im lặng hoặc WARN.
+function specOnDiskChecks(cwd) {
+  const out = [];
+  const ver = require(path.join(PKG_ROOT, 'package.json')).version;
+  for (const [skill, script, label] of [['ba-flow-logic', 'ba-verify.sh', 'ba-spec'], ['ui-design-logic', 'design-verify.sh', 'design-spec']]) {
+    const r = sh([path.join(PKG_ROOT, 'skills', skill, script)], { cwd });
+    if (r.status === 127) { out.push({ name: `${label} trên đĩa`, status: 'WARN', note: 'không tìm thấy sh — chưa kiểm được' }); continue; }
+    const parts = (r.stdout + r.stderr).split('── lint ').slice(1);
+    if (parts.length === 0) continue; // không có spec loại này
+    const bad = parts.filter((seg) => /\bBLOCK\b/.test(seg)).map((seg) => seg.split('\n')[0].trim());
+    out.push({
+      name: `${label} trên đĩa qua cổng (${parts.length} file, luật v${ver})`,
+      status: bad.length ? 'WARN' : 'PASS',
+      note: bad.length ? `${bad.length} file không qua ${script}: ${bad.slice(0, 3).map((f) => path.basename(f)).join(', ')}${bad.length > 3 ? '…' : ''} — cổng commit chỉ soi file staged nên spec cũ lọt` : '',
+    });
+  }
+  return out;
+}
+
 function git(args, opts = {}) {
   const r = spawnSync('git', args, { encoding: 'utf8', cwd: opts.cwd || process.cwd() });
   return { status: r.status === null ? 1 : r.status, stdout: (r.stdout || '').trim(), stderr: r.stderr || '' };
@@ -337,6 +360,9 @@ const FILES = [
   { tpl: 'ops-schedules.md.template',        dest: 'docs/_templates/ops-schedules.md.template',        stackable: false },
   { tpl: 'ops-external-services.md.template',dest: 'docs/_templates/ops-external-services.md.template',stackable: false },
   { tpl: 'contract-doc.md.template',         dest: 'docs/_templates/contract-doc.md.template',         stackable: false },
+  // v1.27.0 — 2 doc TUỲ CHỌN, không gate: chuẩn kỹ thuật chung (quy ước của công ty/đội) + thiết kế kỹ thuật cho phần không UI
+  { tpl: 'engineering-standards.md.template',dest: 'docs/_templates/engineering-standards.md.template',stackable: false },
+  { tpl: 'tech-design.md.template',          dest: 'docs/_templates/tech-design.md.template',          stackable: false },
   // Wave 3 — template SỐNG TRONG SKILL (self-contained; tpl chứa '/' = path từ PKG_ROOT, không qua templates/)
   { tpl: 'skills/security-logic/security-review.md.template', dest: 'docs/_templates/security-review.md.template', stackable: false },
   { tpl: 'skills/ui-design-logic/design-spec.md.template',    dest: 'docs/_templates/design-spec.md.template',     stackable: false },
@@ -559,6 +585,8 @@ async function cmdDoctor() {
       }
     }
   }
+
+  for (const c of specOnDiskChecks(process.cwd())) add(c.name, c.status, c.note);
 
   let fail = 0;
   for (const c of checks) {
@@ -956,6 +984,23 @@ async function cmdSelfTest(args = {}) { // dùng cho `npm test` của chính pac
     if (rb === null && git(['rev-parse', '--show-toplevel'], { cwd: PKG_ROOT }).status !== 0) console.log('INFO update-merge: package không nằm trong git → bỏ qua ca dựng bản gốc từ lịch sử');
     else mu.push(['dựng bản gốc v1.23.0 từ lịch sử git package', !!rb && /ai-simple-version: 1\.23\.0/.test(rb) && !/1\.24 — ky tu bidi/.test(rb)]);
     for (const [n, ok] of mu) { if (!ok) failed = true; console.log(`${ok ? 'PASS' : 'FAIL'} update-merge: ${n}`); }
+  }
+
+  // v1.27.0 — doctor soi spec trên đĩa (YELLOW): 3 fixture, quan trọng nhất là KHÔNG BAO GIỜ ra FAIL.
+  {
+    const mk = (files) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-spec-')); fs.mkdirSync(path.join(d, 'docs', 'app-map'), { recursive: true }); for (const [n, c] of Object.entries(files)) fs.writeFileSync(path.join(d, 'docs', 'app-map', n), c); return d; };
+    const FM = '# x\n> Load khi: t\ncovers: src/x\nlast_verified: 2026-01-01\nttl_days: 90\n';
+    const good = FM + '## 10. Acceptance\n### AC-1 a · Test: e2e\n- **Given** x\n- **When** y\n- **Then** z\n- **Assert** count(x)==0\n';
+    const d0 = mk({}), d1 = mk({ '08-ba-spec-a.md': FM + '## 1. JTBD\nchua co AC\n', '09-ba-spec-b.md': good }), d2 = mk({ '08-ba-spec-a.md': good });
+    const c0 = specOnDiskChecks(d0), c1 = specOnDiskChecks(d1), c2 = specOnDiskChecks(d2);
+    const st = [
+      ['repo không có spec → không dòng nào (im lặng)', c0.length === 0],
+      ['ba-spec 0 AC trên đĩa → WARN nêu đúng 1/2 file, KHÔNG FAIL', c1.length === 1 && c1[0].status === 'WARN' && /^1 file/.test(c1[0].note) && c1[0].note.includes('08-ba-spec-a.md') && c1[0].name.includes('2 file')],
+      ['spec hợp lệ → PASS, không WARN (chống-oan)', c2.length === 1 && c2[0].status === 'PASS'],
+      ['không ca nào sinh trạng thái FAIL (doctor không đỏ vì spec cũ)', [...c0, ...c1, ...c2].every((c) => c.status !== 'FAIL')],
+    ];
+    for (const [n, ok] of st) { if (!ok) failed = true; console.log(`${ok ? 'PASS' : 'FAIL'} doctor-spec: ${n}`); }
+    for (const d of [d0, d1, d2]) fs.rmSync(d, { recursive: true, force: true });
   }
 
   // Update-channel fixtures (YELLOW — đổi hành vi doctor/update): fixture chống-oan là bắt buộc,

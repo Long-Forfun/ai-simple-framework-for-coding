@@ -15,6 +15,8 @@ ttl_days: 90
 
 - `covers:` trỏ code hiện thực nghiệp vụ (không phải code UI thuần — đó là việc design-spec). Code nghiệp vụ đổi → ba-spec ⚠️ SUSPECT → triage biết oracle có thể cũ.
 
+**Pha sau ba-spec** (v1.27.0): phần có màn hình → design-spec của `ui-design-logic`. Phần KHÔNG có giao diện (dịch vụ nền, API, tích hợp, xử lý ngoại tuyến) → doc thiết kế kỹ thuật viết từ `docs/_templates/tech-design.md.template` (mô hình dữ liệu trỏ §5b, ràng buộc vận hành trỏ §9b của ba-spec). Doc tuỳ chọn, chưa có cổng máy — không phải skill thứ sáu.
+
 ## 2. Context routing biết route task BA (móc #03)
 Thêm rule context-router: task là *nhu cầu/nghiệp vụ/flow mới* → ordered list bắt đầu bằng `docs/app-map/0X-ba-spec.md`, rồi reference theo bước (user/nghiệp vụ → 01; flow/tối ưu → 02; AC → 03; reverse → 04). Đổi nhỏ đã rõ → KHÔNG load BA, vào build.
 
