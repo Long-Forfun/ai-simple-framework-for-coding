@@ -51,12 +51,14 @@ check_reads() {
   local root="${1:-.}" rc=0 f
   local refs; refs=$(resolve_reads "$root")
   if [ -z "$refs" ]; then echo "  WARN  không tìm thấy app-map ($APP_MAP_DIR) — repo chưa có doc? (degrade, không stop)"; fi
-  # while-read + here-string: chịu được tên file có dấu cách + rc propagate (KHÔNG pipe → khỏi subshell nuốt rc).
+  # while-read + here-doc (POSIX, dash không có <<<): chịu được tên file có dấu cách + rc propagate (KHÔNG pipe → khỏi subshell nuốt rc).
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     if [ -f "$root/$f" ]; then echo "  OK   read   $f"
     else echo "  DEAD read   $f  <-- ref chết, HARD STOP"; rc=1; fi
-  done <<< "$refs"
+  done <<EOF
+$refs
+EOF
   # oracle presence (INFO, KHÔNG gate — repo chưa chạy BA/design vẫn chạy degrade [no-oracle]):
   if [ -d "$root/$APP_MAP_DIR" ]; then
     local oracle; oracle=$( cd "$root" && find "$APP_MAP_DIR" -maxdepth 2 -name '*.md' 2>/dev/null | grep -iE 'ba-spec|design-spec|design-system' | head -1 )
