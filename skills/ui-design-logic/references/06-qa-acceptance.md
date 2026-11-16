@@ -11,12 +11,17 @@ skill này bắt buộc vòng lặp đó. **Cấm tuyên bố "xong" khi chưa s
    + dark mode ở viewport chính (nếu app có dark mode)
    + SPOT-CHECK 320×568 (không cần đủ ma trận): chỉ soi scroll ngang, label wrap 2 dòng,
    heading tràn — 3 lỗi chỉ lộ ở bề rộng hẹp nhất
-3. Tự chấm theo checklist mục 2 — nhìn ảnh thật, không nhìn code mà đoán
+3. Chấm theo checklist mục 2 — nhìn ảnh thật, không nhìn code mà đoán. Vòng CUỐI (trước khi báo xong)
+   do **Critic context sạch** chấm, không phải người dựng: subagent mới chỉ nhận screenshot + design-spec
+   (+ ảnh tham chiếu ở mục Hướng hình nếu có) — KHÔNG nhận code, KHÔNG nhận lời giải thích. Critic trả
+   DANH SÁCH ĐIỂM LỆCH (lệch spec / lệch checklist §2 / lệch tham chiếu ở điểm nào), không chấm điểm số
+   (điểm của judge LLM nhiễu — NT12). Runtime không có subagent → chấm ở lượt riêng chỉ mở ảnh + spec.
+   Ghi vào design-spec mục Nghiệm thu: `Phản biện <ngày>: <n> điểm lệch · sửa <a> · giữ <b> (lý do)`
 4. Có lỗi BLOCK/MAJOR → sửa → screenshot lại vùng đã sửa → chấm lại
 5. Lặp đến khi hết BLOCK/MAJOR (thường 2–3 vòng). MINOR còn lại: liệt kê cho user quyết
 ```
 
-Task nhỏ (sửa 1 component): chỉ cần screenshot màn hình chứa nó ở viewport chính + mobile.
+Task nhỏ (sửa 1 component): chỉ cần screenshot màn hình chứa nó ở viewport chính + mobile; miễn Critic.
 Task mới cả app: đủ ma trận màn hình × viewport.
 
 ## 2. Checklist nghiệm thu
@@ -97,6 +102,12 @@ Task mới cả app: đủ ma trận màn hình × viewport.
 | (B) Nhìn như AI/slop/template | Metric bịa, fake chrome, hero+3-card generic, gradient vô cớ | §2 gate anti-slop; landing cần chấm sâu → contract 08 |
 | (C) "Xấu" nhưng thật ra THIẾU hành vi | Màn thiếu trạng thái/nghiệp vụ mà spec cũng không có | KHÔNG sửa UI — handoff BA (ba-flow-logic), spec sai/thiếu |
 | (D) App thật đang lỗi chức năng | Button không bấm được, sai dữ liệu, sai role, treo | ui-ux-triage (test như user thật, phân bucket) |
+
+**Đo trước khi sửa case B** (v1.28.0): chạy `npx ai-simple ui-fingerprint` — in số họ màu đang dùng so với luật 04 §1 và mật độ
+các mẫu hay gặp ở UI do máy sinh (gradient, họ tím, bo góc lớn, bóng nặng, kính mờ, emoji, màu rời) trên mỗi 1000 dòng.
+Ghi con số TRƯỚC vào báo cáo, sửa, chạy lại ghi con số SAU — "đỡ giống AI hơn" phải là một hiệu số, không phải cảm giác.
+Đây là báo cáo (luôn exit 0): repo dùng token thuần ra 0 họ màu là đúng; bo góc lớn có trong design-system đã chốt thì
+không phải lỗi — đối chiếu với mục Ngoại lệ đã duyệt trước khi coi là vi phạm.
 
 **Guardrail redesign (case A/B): đổi HOW nhìn, giữ WHAT chạy.** Được đổi: layout, spacing,
 component, hierarchy, density, mobile adaptation. KHÔNG tự đổi: AC, permission, flow, dữ liệu,

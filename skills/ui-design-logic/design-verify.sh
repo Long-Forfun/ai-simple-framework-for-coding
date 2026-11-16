@@ -105,6 +105,11 @@ lint_one() {
     || echo "  WARN: thieu section 'Flows' (flow map — duong user di, 01 §3)"
   grep -qiE 'screenshot|qa|nghiệm thu|nghiem thu|\.png|\.jpg' "$f" \
     || echo "  WARN: chua thay bang chung screenshot QA (man hinh chua co anh 3 viewport = chua xong, 06)"
+  # v1.26.0 — Hướng hình (01 §7): đầu vào hình viết TRƯỚC khi code. WARN, KHÔNG BLOCK: mọi spec viết
+  # trước v1.26 đều thiếu mục này (đo 2026-11-16: 3/3 design-spec của 3 repo tiêu thụ) — BLOCK là chặn oan cả loạt.
+  # Nhận alias: 'Ngôn ngữ hình' (08 §3) / 'visual direction' cũng tính là đã có hướng.
+  has_section "$f" 'hướng hình|huong hinh|ngôn ngữ hình|ngon ngu hinh|visual.?direction|visual.?fingerprint' \
+    || echo "  WARN: thieu muc 'Huong hinh' (tham chieu user dua / giu quen thuoc / quyet dinh rieng / du lieu that — viet TRUOC khi code, 01 §7)"
   # Contract 08: màn marketing-public đã build thì phải có mục Ngôn ngữ hình (08 §3;
   # nhận cả tên cũ 'Visual fingerprint' — spec viết trước v1.9.0 không bị bắt oan)
   if grep -qi 'marketing-public' "$f" && ! grep -qiE 'ngôn ngữ hình|ngon ngu hinh|visual.?fingerprint' "$f"; then
@@ -126,6 +131,12 @@ if [ "$MODE" = "--self-test" ]; then
   printf "# DESIGN-SPEC x\n${FM}${LADDER}${SMHDR}${SMROW}${STATE}## Action → Expectation\n| Tạo | thấy detail |\n## Flows\nx\nmobile: bottom tabs\nscreenshot ok\n" > "$T/ok.md"
   R=$(lint_one "$T/ok.md")
   echo "$R" | grep -q BLOCK && { echo "FAIL: spec hop le bi BLOCK oan:"; echo "$R"; RC=1; } || echo "PASS: spec hop le qua het"
+  # v1.26.0 — Huong hinh: spec CU (khong co muc) -> chi WARN, KHONG BLOCK (chong-oan); co muc/alias -> het WARN
+  echo "$R" | grep -q "thieu muc 'Huong hinh'" && ! echo "$R" | grep -q BLOCK && echo "PASS: spec cu thieu Huong hinh -> WARN, khong BLOCK (chong-oan)" || { echo "FAIL: Huong hinh sai muc (phai WARN, khong BLOCK): $R"; RC=1; }
+  printf "# DESIGN-SPEC x\n${FM}${LADDER}## Hướng hình\n- Tham chiếu user đưa: không có — đã hỏi 2026-11-16\n${SMHDR}${SMROW}${STATE}" > "$T/hh.md"
+  R2=$(lint_one "$T/hh.md"); echo "$R2" | grep -q "Huong hinh" && { echo "FAIL: co muc Huong hinh ma van WARN: $R2"; RC=1; } || echo "PASS: co muc Huong hinh -> khong WARN"
+  printf "# DESIGN-SPEC x\n${FM}${LADDER}${SMHDR}${SMROW}${STATE}## Ngôn ngữ hình — Landing\n- Bố cục: x\n" > "$T/hh2.md"
+  R2=$(lint_one "$T/hh2.md"); echo "$R2" | grep -q "Huong hinh" && { echo "FAIL: alias 'Ngon ngu hinh' khong duoc nhan: $R2"; RC=1; } || echo "PASS: alias 'Ngon ngu hinh' (08 §3) tinh la da co huong"
 
   # 2) thiếu Screen map → BLOCK
   printf "# x\n${FM}${LADDER}${STATE}" > "$T/no-sm.md"

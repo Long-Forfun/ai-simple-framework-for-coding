@@ -4,26 +4,49 @@ covers: {{src/app/...}}
 last_verified: {{YYYY-MM-DD}}
 ttl_days: 90
 
-<!-- ai-simple-version: 1.12.0 — template sống trong skills/ui-design-logic (self-contained, Wave 3).
-     Format bị ép bởi design-verify.sh (lint section) — các section dưới là BẮT BUỘC. -->
+<!-- ai-simple-version: 1.26.0 — template sống trong skills/ui-design-logic (self-contained, Wave 3).
+     Format bị ép bởi design-verify.sh (lint section): Thang người dùng / Screen map / Ma trận trạng thái
+     là BẮT BUỘC (BLOCK); các mục còn lại thiếu thì WARN. v1.26.0: đồng bộ với mẫu đầy đủ ở ref 01 §7
+     (bản cũ thiếu Type/Hướng hình/Action→Expectation/Flows nên chính template tự ăn WARN). -->
 
 ## Thang người dùng
 | Loại user | Muốn thấy gì | Truyền tải | Action tiếp |
 |---|---|---|---|
 | {{Public/Member/Admin}} | {{giá trị nhìn thấy}} | {{cách truyền tải}} | {{action}} |
 
+## Hướng hình (viết TRƯỚC khi code — màn `product` 3–4 dòng là đủ)
+- Tham chiếu user đưa: {{file/URL/ảnh chụp phần mềm họ ĐANG dùng}} | `không có — đã hỏi {{ngày}}`
+- Giữ quen thuộc ở: {{thứ user đã quen tay — vd bảng dày như Excel, thứ tự cột như sổ giấy}}
+- Quyết định riêng của project (≤ 3, mỗi cái 1 lý do AUDIENCE/BỐI CẢNH): {{vd chữ ≥18px — dùng ngoài nắng}}
+- Dữ liệu thật để dựng màn: {{bảng/CSV/ảnh chụp — không lorem, không số bịa}}
+
 ## Screen map
-| # | Màn | Vào từ | User đến để làm gì | Step tiếp theo | Primary |
-|---|---|---|---|---|---|
-| 1 | {{Màn}} | {{entry}} | {{goal}} | {{next}} | {{1 primary duy nhất}} |
+| # | Màn | Type | Vào từ | User đến để làm gì | Step tiếp theo | Primary |
+|---|---|---|---|---|---|---|
+| 1 | {{Màn}} | product | {{entry}} | {{goal}} | {{next}} | {{1 primary duy nhất}} |
 
 ## Ma trận trạng thái
 | Màn hình | Chưa login | Trống | Đang tải | Lỗi | Dữ liệu cực đoan |
 |---|---|---|---|---|---|
 | {{Màn}} | {{redirect?}} | {{empty state}} | {{skeleton}} | {{retry}} | {{tràn/ngắn}} |
 
+## Action → Expectation
+| Hành động | User kỳ vọng thấy ngay sau đó |
+|---|---|
+| {{Tạo xong}} | {{thấy cái vừa tạo}} |
+
+## Flows
+{{đường user đi giữa các màn — tiếp nối flow của ba-spec nếu có}}
+
 ## Platform
 Mobile-first {{375px}} · desktop {{1280px}} — touch target 44/48, contrast 4.5:1 + dark mode, focus ring không bị huỷ.
 
+## Ngoại lệ đã duyệt (cơ chế [DEF])
+- {{quy tắc [DEF] nào làm khác · giá trị thay thế · lý do audience/kỹ thuật · nguồn + ngày}} | `không có`
+
+## Anti-references (gu cấp project — không phải luật)
+- {{thứ user đã chê đích danh trong project này}} | `chưa có`
+
 ## Nghiệm thu
 Screenshot từng màn ở từng trạng thái (QA đối chiếu ma trận) — {{đường dẫn thư mục ảnh}}.
+- Phản biện {{YYYY-MM-DD}}: {{n}} điểm lệch · sửa {{a}} · giữ {{b}} ({{lý do}}) — Critic context sạch (06 §1)

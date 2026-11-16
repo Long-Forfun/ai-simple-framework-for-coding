@@ -44,13 +44,13 @@ BA (nhu cầu→ba-spec) → [ui-design-logic] (→design-spec) → build → ui
 ## Pipeline 7 bước — BẮT BUỘC theo thứ tự, không nhảy cóc
 
 ```
-0. Brief        → ĐỌC ba-spec nếu app-map có (do ba-flow-logic sinh): user-ladder seed từ §User registry, flow/screen từ §Flows, AC làm ràng buộc hành vi → KHÔNG hỏi lại user/job. KHÔNG có ba-spec → tự thu brief: ai dùng, làm gì, platform, logo/brand
+0. Brief        → ĐỌC ba-spec nếu app-map có (do ba-flow-logic sinh): user-ladder seed từ §User registry, flow/screen từ §Flows, AC làm ràng buộc hành vi → KHÔNG hỏi lại user/job. KHÔNG có ba-spec → tự thu brief: ai dùng, làm gì, platform, logo/brand. Dù có ba-spec hay không, hỏi gộp CÙNG LƯỢT 2 thứ spec hành vi không có: ảnh/URL phần mềm user ĐANG dùng cho việc này + một mẫu dữ liệu thật → ghi vào mục **Hướng hình** (01 §7)
 1. IA + hành vi → THANG USER (loại × 3 câu — TIẾP NỐI từ ba-spec nếu có, không dựng lại) → object model, flow map, screen map + BUDGET, entry/step-tiếp/trạng thái/action→expectation → viết DESIGN-SPEC.md
 2. Layout       → grid, density budget từng màn hình, quy tắc collapse/expand
 3. Components   → tra decision table: component nào, text viết sao
 4. Tokens       → màu (hoà logo), font, spacing — stack khoá React+Tailwind+shadcn
 5. Platforms    → desktop/tablet/mobile = 3 design con; iOS theo HIG, Android theo Material
-6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, check, sửa, lặp
+6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, Critic context sạch chấm (06 §1), sửa, lặp
 ```
 
 **DESIGN-SPEC.md là chốt chặn**: chưa có spec (bước 1) thì CHƯA được viết code UI.
@@ -82,6 +82,10 @@ Mỗi quy tắc mang đúng 1 nhãn. Vi phạm xử THEO NHÃN, không theo cả
   Không có dòng ngoại lệ = vi phạm.
 - **[STACK]** — convention của stack đã chọn. Chỉ áp khi project dùng stack đó.
 
+**Đầu vào & nghiệm thu (v1.26.0 — luật cấm chỉ cho SÀN, hai luật này cho hướng và cho người chấm):**
+- [DEF] **Hướng hình trước khi code**: design-spec có mục `## Hướng hình` (01 §7) viết TRƯỚC bước 2 — tham chiếu do user đưa (file/URL/ảnh; AI cấm tự kể tên sản phẩm nổi tiếng làm tham chiếu), thứ giữ quen thuộc, ≤ 3 quyết định riêng có lý do audience, nguồn dữ liệu thật. Màn `product` không bị ép khác biệt. *(ép bởi `design-verify.sh` WARN thiếu mục)*
+- [DEF] **Người dựng không tự chấm**: vòng QA cuối do Critic context sạch chấm — chỉ nhận screenshot + design-spec (+ ảnh tham chiếu nếu có), không nhận code hay lời giải thích của người dựng; trả DANH SÁCH ĐIỂM LỆCH, không chấm điểm. Task nhỏ (sửa 1 component) miễn. *(ép bởi dòng `Phản biện:` ở mục Nghiệm thu của design-spec, `/audit` đếm; 06 §1)*
+
 **Kiến trúc & hành vi:**
 - [INV] 1 màn hình = 1 nhiệm vụ chính = đúng 1 primary button
 - [INV] Không design cho "user chung chung": spec khai báo **thang user** (public / mới / quen / power × role/tier), mỗi loại trả lời đủ 3 câu — *muốn thấy gì / sản phẩm truyền tải gì / thúc đẩy action tiếp theo gì*. Màn hình phục vụ ≥ 2 loại → có biến thể, cấm bản "trung bình cộng"
@@ -108,6 +112,7 @@ Mỗi quy tắc mang đúng 1 nhãn. Vi phạm xử THEO NHÃN, không theo cả
 - [INV] **Thứ bấm được phải là thẻ bấm được**: `onClick` trên `div/span/li/td` thiếu `role`+`tabIndex`+`onKeyDown` là vi phạm — và cách sửa mặc định là đổi sang `<button type="button">`, không phải dán `role="button"` cho đủ lễ. *(nguồn ý tưởng IMP-semantic-html · ép bởi hook 1d-f BLOCK + 06 §2)*
 
 **Visual:**
+- [DEF] **Vẻ ngoài phải đo được**: khi user chê "nhìn như AI" hoặc trước/sau một đợt redesign, chạy `npx ai-simple ui-fingerprint` và ghi số trước/sau vào báo cáo (06 §3). *(ép bởi `lib/ui-fingerprint.js` — báo cáo, không chặn)*
 - [DEF] 1 neutral ramp + 1 accent + 4 màu semantic (+ 1 categorical palette RIÊNG cho chart nếu app có chart nhiều series — 04 §1). Logo xử lý theo 04, không nhét thô
 - [INV] Text contrast ≥ 4.5:1 (chữ lớn ≥ 24px: ≥ 3:1). Dark mode phải được kiểm tra, không phải "để sau"
 - [DEF] **FONT — mặc định SYSTEM FONT STACK**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif` (native, có sẵn tiếng Việt, không tải Google Fonts). Số: system mono + tabular-nums. UI nghiệp vụ/nội bộ: không serif/display trang trí, không font "cá tính".

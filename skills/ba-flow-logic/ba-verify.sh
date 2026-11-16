@@ -14,6 +14,7 @@
 #   bash ba-verify.sh            # lint mọi ba-spec trong docs/app-map (đọc trên đĩa)
 #   bash ba-verify.sh --staged   # lint NỘI DUNG ĐÃ STAGE (git show :file) — cho pre-commit
 #   bash ba-verify.sh --self-test
+#   bash ba-verify.sh --coverage # BÁO CÁO độ phủ (luôn exit 0, KHÔNG nằm trong đường commit) — xem coverage_one
 #
 # WIRE VÀO PRE-COMMIT (chặn thật) — thêm vào .githooks/pre-commit của project:
 #   if ! sh .claude/skills/ba-flow-logic/ba-verify.sh --staged; then FAIL=1; fi
@@ -81,7 +82,9 @@ lint_one() {
 
   # ENFORCED (Wave 2a): "Maps to: <ID>" trên header AC → TỪNG ID phải tồn tại chỗ khác trong file
   # (định nghĩa flow/nghiệp vụ). Không có "Maps to:" thì KHÔNG bắt — không phải spec nào cũng dùng.
-  MAPIDS=$(grep -E '^###[ \t]*AC' "$f" | grep -oiE 'Maps to:[ \t]*[^·|]*' | sed 's/^[Mm]aps to:[ \t]*//' | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort -u)
+  # v1.26.0: nhận cả "Maps to flow:" — đúng chữ template + ref 03; trước đó parser chỉ bắt "Maps to:"
+  # nên spec viết ĐÚNG template lọt hẳn check này (đo 2026-11-16 trên 15 ba-spec của 4 repo tiêu thụ).
+  MAPIDS=$(grep -E '^###[ \t]*AC' "$f" | grep -oiE 'Maps to( flow)?:[ \t]*[^·|]*' | sed -E 's/^[Mm]aps to( flow)?:[ \t]*//' | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort -u)
   if [ -n "$MAPIDS" ]; then
     while IFS= read -r mid; do
       [ -n "$mid" ] || continue
@@ -103,6 +106,63 @@ EOF_MAP
   echo "$ACSCAN" | grep -niE "$UI_WARN" 2>/dev/null | sed 's/^/  WARN: AC co the chua tu UI -> /' || true
 
   return $rc
+}
+
+# ── --coverage (v1.26.0) — BÁO CÁO, không phải cổng: luôn exit 0, không in BLOCK/WARN ──────────
+# Vì sao là báo cáo chứ không WARN mỗi commit: 4 phép đo dưới đều là heuristic trên văn tự do
+# (ID trong bảng, từ khoá nhánh lỗi) — rải WARN là chặn oan spec ngắn/spec tách file/flow chỉ-đọc
+# (phản biện độc lập 2026-11-16; án lệ design-verify BLOCK oan). Dùng để ĐO trước/sau và cho
+# Spec-Critic đọc, không dùng để chặn.
+#   NV/R/H "duoc AC dan ID" = ID định nghĩa ở cột đầu bảng (hoặc heading Flow) có xuất hiện trong
+#   một block AC. Không có ID nào định nghĩa -> n/a (spec không dùng quy ước ID, không phải lỗi).
+coverage_one() {
+  f="$1"; label="${2:-$1}"; [ -f "$f" ] || return 0
+  awk -v label="$label" '
+    function addid(arr, id) { if (!(id in arr)) { arr[id]=1; return 1 } return 0 }
+    function hit(id) { return match(actext, "(^|[^A-Za-z0-9])" id "([^A-Za-z0-9]|$)") }
+    function ratio(kind, arr, order, n,    i, c, miss, id) {
+      if (n==0) return kind " n/a"
+      c=0; miss=""
+      for (i=1;i<=n;i++) { id=order[i]; if (hit(id)) c++; else miss=miss " " id }
+      if (miss!="") gaps=gaps "\n    " kind " chua co AC dan ID:" miss
+      return kind " " c "/" n
+    }
+    {
+      line=$0
+      if (line ~ /^###[ \t]*AC/) { inac=1; nac++; cur=nac; actext=actext "\n" line; next }
+      if (line ~ /^#/) {
+        inac=0
+        low=tolower(line)
+        if (low ~ /thuật ngữ|glossary|từ vựng/) sgl=1
+        if (low ~ /vòng đời|trạng thái|state/) slife=1
+        if (low ~ /ràng buộc|phi chức năng|nfr/) snfr=1
+        if (line ~ /^##+[ \t].*NV[0-9]/) { t=line; while (match(t, /NV[0-9]+[a-z]?/)) { id=substr(t,RSTART,RLENGTH); if (addid(nv,id)) nvo[++nnv]=id; t=substr(t,RSTART+RLENGTH) } }
+        next
+      }
+      if (inac) {
+        actext=actext "\n" line; acbody[cur]=acbody[cur] " " line
+        next
+      }
+      if (match(line, /^\|[ \t]*\**(NV|R|H)[0-9]+[a-z]?\**[ \t]*\|/)) {
+        id=line; sub(/^\|[ \t]*\**/, "", id); sub(/\**[ \t]*\|.*/, "", id)
+        if (id ~ /^NV/) { if (addid(nv,id)) nvo[++nnv]=id }
+        else if (id ~ /^R/) { if (addid(rr,id)) ro[++nr]=id; if (tolower(line) ~ /\[nguồn:/) rsrc++ }
+        else { if (addid(hh,id)) ho[++nh]=id }
+      }
+      t=tolower(line)
+      while (match(t, /màn hình|nút bấm|bấm nút|sidebar|popup|modal|dropdown|button/)) { ui++; t=substr(t,RSTART+RLENGTH) }
+    }
+    END {
+      for (i=1;i<=nac;i++) if (tolower(acbody[i]) ~ /không được|không cho|không thể|từ chối|chặn|lỗi|thất bại|hết hạn|quá hạn|mất sóng|mất mạng|mất kết nối|không hợp lệ|trùng|vượt|huỷ|hủy/) neg++
+      out="  " ratio("NV", nv, nvo, nnv) " · " ratio("Rule", rr, ro, nr) " · " ratio("Handoff", hh, ho, nh)
+      print "── coverage " label
+      print "  AC=" nac+0 " · AC nhanh loi (uoc luong tu khoa) " neg+0 "/" nac+0 " · Rule co [nguồn:] " rsrc+0 "/" nr+0 " · tu UI ngoai AC: " ui+0
+      print out
+      m=""; if (!sgl) m=m " Thuat-ngu"; if (!slife) m=m " Vong-doi-trang-thai"; if (!snfr) m=m " Rang-buoc/phi-chuc-nang"
+      if (m!="") print "  chua co muc:" m " (ghi N/A neu khong ap dung)"
+      if (gaps!="") print "  ID chua duoc AC nao dan:" gaps
+    }
+  ' "$f"
 }
 
 if [ "$MODE" = "--self-test" ]; then
@@ -151,6 +211,19 @@ if [ "$MODE" = "--self-test" ]; then
   ( cd "$TSP" && sh "$SELFV" --staged ) >/dev/null 2>&1; RCSP=$?
   [ "$RCSP" -ne 0 ] && echo "PASS: ten file co dau cach nhanh --staged -> BLOCK (het false-pass word-split)" || { echo "FAIL: ten file dau cach van PASS gia"; RC=1; }
   rm -rf "$TSP"
+  # v1.26.0 — "Maps to flow:" (dung chu template) phai duoc kiem nhu "Maps to:"
+  printf "# x\n${FM}## 5. Flows\n### Flow NV1 — a\n## 10. Acceptance\n### AC-1 a · Maps to flow: NV1 · Test: e2e\n- **Given** x\n- **When** y\n- **Then** z\n- **Assert** count(x)==0\n" > "$T/mf1.md"
+  R=$(lint_one "$T/mf1.md"); echo "$R" | grep -q BLOCK && { echo "FAIL: 'Maps to flow: NV1' hop le bi BLOCK oan: $R"; RC=1; } || echo "PASS: 'Maps to flow:' tro toi flow co that -> qua"
+  printf "# x\n${FM}## 10. Acceptance\n### AC-1 a · Maps to flow: NV9 · Test: e2e\n- **Given** x\n- **When** y\n- **Then** z\n- **Assert** count(x)==0\n" > "$T/mf2.md"
+  R=$(lint_one "$T/mf2.md"); echo "$R" | grep -q "NV9" && echo "PASS: 'Maps to flow:' tro toi flow KHONG ton tai -> BLOCK (truoc v1.26 lot)" || { echo "FAIL: 'Maps to flow: NV9' ma van lot"; RC=1; }
+  # v1.26.0 — --coverage la BAO CAO: khong bao gio in BLOCK/WARN, spec khong dung ID -> n/a (chong-oan)
+  printf "# x\n${FM}## 3. NV\n| # | NV |\n|---|---|\n| NV1 | a |\n| NV2 | b |\n## 9. Rules\n| # | Rule |\n|---|---|\n| R1 | chi chu duyet [nguồn: user] |\n| R2 | khong tru kho 2 lan |\n## 10. Acceptance\n### AC-1 a · Maps to flow: NV1 · Test: e2e\n- **Given** x\n- **When** nhan vien co duyet\n- **Then** bi tu choi theo R1\n- **Assert** count(x)==0\n" > "$T/cv1.md"
+  R=$(coverage_one "$T/cv1.md")
+  echo "$R" | grep -q 'NV 1/2' && echo "$R" | grep -q 'Rule 1/2' && echo "$R" | grep -q 'Handoff n/a' && echo "$R" | grep -q 'Rule co \[nguồn:\] 1/2' \
+    && echo "PASS: --coverage dem dung NV 1/2 · Rule 1/2 · Handoff n/a · nguon 1/2" || { echo "FAIL: --coverage dem sai: $R"; RC=1; }
+  echo "$R" | grep -q 'NV2' && echo "$R" | grep -q 'R2' && echo "PASS: --coverage liet ke ID chua co AC (NV2, R2)" || { echo "FAIL: --coverage khong liet ke ID thieu: $R"; RC=1; }
+  R=$(coverage_one "$T/d.md"); echo "$R" | grep -qE 'BLOCK|WARN' && { echo "FAIL: --coverage in BLOCK/WARN (phai la bao cao thuan): $R"; RC=1; } \
+    || { echo "$R" | grep -q 'NV n/a · Rule n/a · Handoff n/a' && echo "PASS: --coverage tren spec KHONG dung ID -> n/a, khong BLOCK/WARN (chong-oan)" || { echo "FAIL: spec khong ID khong ra n/a: $R"; RC=1; }; }
   rm -rf "$T"
   [ "$RC" -eq 0 ] && echo "ba-verify self-test: ALL PASS" || echo "ba-verify self-test: CO FAIL"
   exit $RC
@@ -176,6 +249,12 @@ fi
 
 FILES=$(find "$APP_MAP_DIR" -maxdepth 2 -name '*.md' 2>/dev/null | grep -iE 'ba-spec' || true)
 [ -z "$FILES" ] && { echo "ba-verify: khong thay ba-spec (mode=$MODE) -> skip (exit 0)"; exit 0; }
+if [ "$MODE" = "--coverage" ]; then
+  while IFS= read -r f; do [ -n "$f" ] && coverage_one "$f"; done <<EOF_COV
+$FILES
+EOF_COV
+  exit 0
+fi
 FAIL=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue

@@ -4,6 +4,99 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.28.0 — 2026-11-16 (`ui-fingerprint` — "vẻ AI" của giao diện có con số)
+
+Nguồn: lời than số một là "UI ra AI style", nhưng hệ chưa có phép đo nào cho nó — hook 1d chỉ soi dòng thêm của từng
+commit, checklist 06 §2 chấm bằng mắt từng màn.
+
+- **`ai-simple ui-fingerprint [thư-mục] [--json]`** (`lib/ui-fingerprint.js`, zero-dep, BÁO CÁO — luôn exit 0): đếm số họ
+  màu đang dùng so với luật 04 §1 (1 neutral + 1 accent + 4 semantic) và mật độ trên 1000 dòng của 9 mẫu hay gặp ở UI do
+  máy sinh (gradient nền, gradient chữ, họ tím, bo góc lớn, bóng nặng, kính mờ, phóng khi rê, emoji, màu rời).
+  7 fixture, gồm 2 ca chống-oan: repo không có UI → bỏ qua; UI dùng token thuần → mọi số bằng 0.
+- **ui-design-logic**: luật [DEF] "vẻ ngoài phải đo được" + 06 §3 case B ghi số trước/sau; +1 eval.
+
+Đo 2026-11-16 trên 4 repo tiêu thụ:
+
+| Repo | Họ màu có sắc (luật: 5) | Họ neutral (luật: 1) | Họ tím /1000 dòng | Gradient nền | Bo góc lớn | Emoji |
+|---|---|---|---|---|---|---|
+| ForFish | 0 (token thuần) | 0 | 0 | 0,15 | 2,81 | 0,20 |
+| SDMap | 0 (token thuần) | 0 | 0 | 0,02 | 1,36 | 0,46 |
+| AMS-Aqua | 10 | 1 | 0,06 | 0,67 | 0,80 | 0,75 |
+| CRM SDVICO | 16 | 3 | 1,72 (424 chỗ) | 0,04 | 0,02 | 0,35 |
+
+Giới hạn: grep heuristic — không đo bố cục, thứ bậc thị giác hay nội dung; màu đặt qua token CSS không được đếm; mẫu nằm
+trong design-system đã chốt không phải lỗi. Dùng để so trước/sau trên CÙNG một repo, không để xếp hạng repo.
+
+- **RE-APPLY**: chạy `npx ai-simple ui-fingerprint` ở project có UI, ghi số hiện tại vào design-spec làm mốc
+
+## v1.27.0 — 2026-11-16 (doctor soi spec trên đĩa + chuẩn kỹ thuật chung + thiết kế kỹ thuật cho phần không UI)
+
+Nguồn: plan cuối sau v1.26.0, qua 1 vòng review độc lập (subagent context sạch — trả REVISE, 9 điểm sửa đều đã nhận).
+
+- **`doctor` soi spec ĐANG NẰM TRÊN ĐĨA** (`specOnDiskChecks`): chạy `ba-verify.sh` + `design-verify.sh` của package ở chế độ
+  toàn-repo. Chỉ PASS/WARN, không bao giờ FAIL. Vì sao: cổng commit chỉ soi file staged — đo trên ForFish có 3/10 ba-spec
+  nằm trên nhánh chính với 0 AC. Chạy bản của PACKAGE chứ không qua junction (3/4 repo tiêu thụ không có junction
+  ba-flow-logic). Đo trên 4 repo thật: ForFish WARN 3 file, SDMap/AMS-Aqua/CRM PASS, không thêm dòng FAIL nào.
+- **`engineering-standards.md.template`** (tuỳ chọn, không gate) — chuẩn chung của đội/công ty: từ vựng (trỏ Thuật ngữ của
+  ba-spec), đặt tên, mẫu phản hồi API + mã lỗi, phân lớp + pattern (trỏ ADR), vùng nhạy cảm (trỏ `SEC_SENSITIVE_PATHS` —
+  hook chỉ CẢNH BÁO, không chặn), định nghĩa xong theo vai. `init` cài vào `docs/_templates/`.
+- **`tech-design.md.template`** (tuỳ chọn, không gate) — pha sau ba-spec cho phần không giao diện. KHÔNG phải skill thứ
+  sáu, số bản sắc giữ nguyên. ba-flow-logic §2 + ref 05 chỉ đường; +1 eval.
+- **`triage-verify.sh` chạy được dưới dash** — CI Ubuntu đỏ từ trước v1.26.0 vì here-string `<<<`.
+
+A/B của v1.26.0 (cùng 2 yêu cầu thật — VAT cố định ở CRM, dùng thử premium ở ForFish; skill v1.25 so với v1.26, mỗi nhánh 1 lần):
+
+| Chỉ số (tổng 2 spec) | Skill cũ | Skill mới |
+|---|---|---|
+| Rule có AC dẫn ID | 0/27 | 28/31 |
+| Handoff có AC dẫn ID | 0/8 | 7/7 |
+| Rule có ghi nguồn | 0/27 | 31/31 |
+| Spec có Thuật ngữ + vòng đời + ràng buộc | 0/2 | 2/2 |
+| Dòng Phản biện, số điểm tự bắt được | 0 | 9 điểm (sửa 6) |
+| Số AC | 57 | 50 |
+| BLOCK của ba-verify | 0 | 0 |
+
+Giới hạn, nói thẳng: n=1 mỗi nhánh; các chỉ số đo việc TUÂN luật mới, chưa đo spec đúng nghiệp vụ hơn; cả hai tính năng
+đã có code trong repo nên nhánh mới (đọc hiện trạng) có lợi thế; subagent không tạo được context sạch thật nên Critic
+chạy dạng tự đọc lại ở lượt riêng — và spec tự ghi rõ điều đó.
+
+- **RE-APPLY**: chạy `ai-simple doctor` ở project, xử các ba-spec/design-spec bị WARN "trên đĩa" (bổ sung AC hoặc đổi tên file nếu không phải spec)
+
+## v1.26.0 — 2026-11-16 (BA + design: người viết không tự chấm, luật có nguồn, hướng hình trước khi code)
+
+Nguồn: rà soát theo lời than "AI làm BA và Design quá kém, UI ra AI style" + 1 vòng phản biện độc lập (subagent context
+sạch tấn công 5 đề xuất, bỏ 6 ý con) + đo trên 4 repo tiêu thụ thật (ForFish, SDMap, AMS-Aqua, CRM SDVICO — 15 ba-spec,
+3 design-spec, đo 2026-11-16).
+
+Số đo TRƯỚC khi sửa (cổng v1.25.0 không nhìn thấy các số này):
+- 12/129 Rule và 1/37 handoff truy được tới một AC bằng ID; 0/15 ba-spec có mục Thuật ngữ; 0/129 Rule ghi nguồn.
+- 3/10 ba-spec của ForFish nằm trên nhánh chính với 0 AC (cổng chỉ chạy trên file staged).
+- 3/3 design-spec không có đầu vào hình nào viết trước khi code.
+
+- **`ba-verify.sh` vá parser `Maps to flow:`** — template và ref 03 viết `Maps to flow: NV1`, parser chỉ bắt `Maps to:` nên
+  spec viết ĐÚNG template lọt hẳn check Flow-ID. Đo sau vá trên 15 ba-spec thật: 0 BLOCK mới (không chặn oan).
+- **`ba-verify.sh --coverage`** (mới, BÁO CÁO — luôn exit 0, không nằm trong đường commit): NV/Rule/Handoff có AC dẫn ID,
+  ước lượng AC nhánh lỗi, Rule có `[nguồn:]`, mục còn thiếu, danh sách ID chưa AC nào dẫn. Cố ý không rải WARN ở commit:
+  cả 4 phép đo là heuristic trên văn tự do (spec không dùng quy ước ID ra `n/a`).
+- **ba-flow-logic**: B0 đọc hiện trạng trước khi hỏi · Rule mang `[nguồn: user|tài liệu|code|suy đoán]`, giả định chạm
+  Rule/AC phải vào lượt hỏi gộp · Rule dễ vỡ + handoff phải có AC nhắc đúng ID · Cross-User-Integrity kiêm Spec-Critic
+  CONTEXT SẠCH (chỉ nhận yêu cầu gốc + spec), để lại dòng `Phản biện:` trong History.
+- **ba-spec template**: thêm §2b Thuật ngữ, §5b Đối tượng & vòng đời trạng thái, §9b Ràng buộc & phi chức năng (đều cho
+  phép `N/A`); số mục cũ giữ nguyên — spec đang có không phải sửa.
+- **ui-design-logic**: mục `## Hướng hình` viết TRƯỚC khi code (tham chiếu do USER đưa — AI cấm tự kể tên sản phẩm nổi
+  tiếng; giữ quen thuộc; ≤ 3 quyết định riêng có lý do audience; dữ liệu thật). Màn `product` không bị ép khác biệt.
+  Vòng QA cuối do Critic context sạch chấm (chỉ screenshot + spec), trả danh sách điểm lệch, không chấm điểm.
+- **`design-verify.sh`**: WARN thiếu Hướng hình (nhận alias `Ngôn ngữ hình`); KHÔNG BLOCK — spec cũ không bị chặn.
+- **`design-spec.md.template`** đồng bộ với mẫu đầy đủ ở ref 01 §7 (bản cũ thiếu Type/Action→Expectation/Flows nên
+  chính template tự ăn 2 WARN của design-verify; bản mới 0 WARN).
+- Evals: +2 case BA (nguồn luật + truy vết, Spec-Critic), +1 case design (Hướng hình trước code).
+- Bị phản biện loại, KHÔNG làm: trần số giả định, ma trận quyền + thứ tự cắt trong ba-spec (trùng app-map 05 / §3 / §7),
+  bắt nêu lý do cho font mặc định, roster Art-director/Builder, luật "giải thích được mới merge" (không đo được).
+- Chưa đo được, nói thẳng: hiệu quả của Hướng hình và Critic lên vẻ ngoài UI — cần một task thật có tham chiếu user đưa.
+
+- **RE-APPLY**: chạy `sh .claude/skills/ba-flow-logic/ba-verify.sh --coverage` ở project, bổ sung AC cho Rule/handoff dễ vỡ chưa có AC dẫn ID
+- **RE-APPLY**: thêm mục `## Hướng hình` vào design-spec hiện có (design-verify đang WARN) trước lần build UI kế tiếp
+
 ## v1.25.0 — 2026-11-05 (`update` gộp 3 chiều — hết xoá gate/câu chữ project tự thêm)
 
 Nguồn: lần nâng ForFish lên v1.24.0 — `update` GHI ĐÈ `.githooks/pre-commit` bằng template, chỉ cứu 5 dòng

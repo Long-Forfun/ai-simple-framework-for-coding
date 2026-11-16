@@ -29,7 +29,7 @@
 5. Gặp hành vi chưa có trong spec: CẤM bỏ qua im lặng. Trạng thái thuộc ma trận mục 4 → làm mặc định an toàn nhất + ghi `## Assumptions` + bổ sung 1 dòng vào spec CÙNG COMMIT; hành vi nghiệp vụ → handoff ngược BA; HOW-nhìn → handoff design.
 6. Vùng miễn test giữ đúng 3 ca của nguyên tắc 04 (pure UI tweak / config-only / doc-only). "Sửa 1 dòng nên khỏi test" KHÔNG phải một ca.
 7. Cắt góc có trần biết trước → để lại `// nợ: <trần là gì>, <điều kiện nâng cấp>`. Thiếu vế thứ hai thì nợ sẽ mục.
-8. <quy ước riêng của project, vd TypeScript strict mode>
+8. <quy ước riêng của project, vd TypeScript strict mode>. Đội nhiều người hoặc có chuẩn công ty (đặt tên, mẫu phản hồi API + mã lỗi, phân lớp, vùng nhạy cảm, định nghĩa xong theo vai): viết thành doc app-map từ docs/_templates/engineering-standards.md.template rồi trỏ tới nó ở đây thay vì nhồi vào file này
 
 ## Commit convention
 ```
