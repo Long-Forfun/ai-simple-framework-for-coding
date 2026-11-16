@@ -40,6 +40,8 @@ AC mô tả **HÀNH VI**, không mô tả **GIAO DIỆN**. Cấm các từ: `mà
 ## Phủ đủ — không chỉ happy path
 Mỗi flow sinh tối thiểu: 1 AC happy path + AC cho mỗi **nhánh** (từ chối/lỗi/thiếu input/quá hạn) + AC cho mỗi **invariant** (§9) dễ vỡ. Domain-Specialist (02) thường chỉ ra ca thiếu.
 
+**Dẫn ID để truy vết được** (v1.26.0): AC kiểm một Rule/handoff thì NHẮC ĐÚNG ID của nó trong block AC (`… bị từ chối theo R1`, `… handoff H2 sang kế toán`). Không có cú pháp riêng — chỉ cần ID xuất hiện. Máy đo: `bash ba-verify.sh --coverage` in `NV a/b · Rule a/b · Handoff a/b` + danh sách ID chưa AC nào dẫn. Đây là BÁO CÁO (luôn exit 0), không WARN ở commit: phép đo dựa trên ID và từ khoá, spec không dùng quy ước ID ra `n/a` chứ không bị phạt. Rule thuần mô tả (không vỡ được) không cần AC — ghi `(không cần AC)` cạnh nó để lần đọc sau khỏi nghi.
+
 ## Mỗi AC kèm CÁCH TEST — ai-simple #04 (không test được = chưa xong)
 ai-simple #04: *"Code without test = future bug. Both = task chưa xong."* "User flow mới → E2E test". Spec hành vi cũng vậy: AC vẽ ra mà không chỉ được cách kiểm = vô dụng cho triage/build. **BA không viết test code** (đó là build), nhưng **BẮT BUỘC khai test INTENT** để spec test được:
 

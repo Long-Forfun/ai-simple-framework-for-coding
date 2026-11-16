@@ -11,12 +11,17 @@ skill này bắt buộc vòng lặp đó. **Cấm tuyên bố "xong" khi chưa s
    + dark mode ở viewport chính (nếu app có dark mode)
    + SPOT-CHECK 320×568 (không cần đủ ma trận): chỉ soi scroll ngang, label wrap 2 dòng,
    heading tràn — 3 lỗi chỉ lộ ở bề rộng hẹp nhất
-3. Tự chấm theo checklist mục 2 — nhìn ảnh thật, không nhìn code mà đoán
+3. Chấm theo checklist mục 2 — nhìn ảnh thật, không nhìn code mà đoán. Vòng CUỐI (trước khi báo xong)
+   do **Critic context sạch** chấm, không phải người dựng: subagent mới chỉ nhận screenshot + design-spec
+   (+ ảnh tham chiếu ở mục Hướng hình nếu có) — KHÔNG nhận code, KHÔNG nhận lời giải thích. Critic trả
+   DANH SÁCH ĐIỂM LỆCH (lệch spec / lệch checklist §2 / lệch tham chiếu ở điểm nào), không chấm điểm số
+   (điểm của judge LLM nhiễu — NT12). Runtime không có subagent → chấm ở lượt riêng chỉ mở ảnh + spec.
+   Ghi vào design-spec mục Nghiệm thu: `Phản biện <ngày>: <n> điểm lệch · sửa <a> · giữ <b> (lý do)`
 4. Có lỗi BLOCK/MAJOR → sửa → screenshot lại vùng đã sửa → chấm lại
 5. Lặp đến khi hết BLOCK/MAJOR (thường 2–3 vòng). MINOR còn lại: liệt kê cho user quyết
 ```
 
-Task nhỏ (sửa 1 component): chỉ cần screenshot màn hình chứa nó ở viewport chính + mobile.
+Task nhỏ (sửa 1 component): chỉ cần screenshot màn hình chứa nó ở viewport chính + mobile; miễn Critic.
 Task mới cả app: đủ ma trận màn hình × viewport.
 
 ## 2. Checklist nghiệm thu

@@ -194,6 +194,12 @@ ttl_days: 90
 ## Object model
 <Object>: list? detail? form? → màn hình sinh ra
 
+## Hướng hình (viết TRƯỚC khi code — màn `product` 3–4 dòng là đủ)
+- Tham chiếu user đưa: <file/URL/ảnh chụp phần mềm họ ĐANG dùng> | `không có — đã hỏi <ngày>`
+- Giữ quen thuộc ở: <thứ user đã quen tay — vd bảng dày như Excel, thứ tự cột như sổ giấy>
+- Quyết định riêng của project (≤ 3, mỗi cái 1 lý do AUDIENCE/BỐI CẢNH): <vd chữ ≥18px — dùng ngoài nắng>
+- Dữ liệu thật để dựng màn: <bảng/CSV/ảnh chụp — không lorem, không số bịa>
+
 ## Nav model
 <sidebar 5 mục: ...> | mobile: <bottom tabs: ...>
 
@@ -214,6 +220,16 @@ bỏ mode thứ tư "experience" · ép bởi design-verify.sh enum)*:
   clamp()/motion giàu hơn — nhưng cấm mượn vỏ dashboard làm trang trí (metric bịa là BLOCK, 06 §2).
 
 Màn `marketing-public` sau khi build thêm mục `## Ngôn ngữ hình — <màn>` theo format 08 §3.
+
+**Mục Hướng hình** (v1.26.0 · [DEF] · ép bởi `design-verify.sh` WARN): luật anti-slop của ta là danh sách CẤM — nó loại
+lỗi nhưng không cho hướng, nên thiếu đầu vào thì model rơi về mặc định giống mọi app AI khác. Hướng hình là đầu vào
+đó, viết TRƯỚC khi code, và chỉ nhận thứ có thật:
+- **Tham chiếu = file/URL/ảnh do USER đưa** (phần mềm họ đang dùng, sổ giấy, báo cáo mẫu). AI CẤM tự kể tên sản phẩm
+  nổi tiếng làm tham chiếu ("giống Linear/Stripe") — tham chiếu lấy từ trí nhớ model chính là nguồn của vẻ AI.
+  User không đưa → ghi `không có — đã hỏi <ngày>` và làm theo dòng "Giữ quen thuộc".
+- **Màn `product` KHÔNG bị ép phải khác biệt** — quen thuộc là ưu điểm (định nghĩa Type ở trên). "Quyết định riêng"
+  ≤ 3 và phải truy được về audience/bối cảnh; không có thì để trống, đừng bịa cá tính.
+- **Dữ liệu thật** dựng màn ngay từ đầu (06 §2 đã coi demo bằng dữ liệu đẹp là MAJOR — mục này kéo nó lên trước build).
 
 Màn hình phục vụ ≥ 2 loại user → mỗi biến thể 1 dòng (vd: `1a Dashboard (mới)` = onboarding checklist, `1b Dashboard (quen)` = metric của họ).
 

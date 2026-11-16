@@ -24,6 +24,13 @@ ttl_days: {{90 cho flow hay đổi | 180 cho domain ổn định}}
 
 > Liệt kê CẢ actor ngoài người: external system, cron, webhook. Mỗi actor là một nguồn/điểm nhận của flow.
 
+## 2b. Thuật ngữ (một tên cho một thứ — design, code và triage dùng lại đúng chữ này)
+| Thuật ngữ | Nghĩa trong nghiệp vụ này | KHÔNG dùng lẫn với |
+|---|---|---|
+| `<đơn chờ duyệt>` | đơn đã tạo, kho tạm giữ, chưa ai duyệt | `<đơn nháp>` (chưa giữ kho) |
+
+> Tên đối tượng và tên trạng thái lấy từ lời user/tài liệu của họ, không tự đặt. Từ nào repo đã có trong code/app-map thì dùng lại, ghi path. Không có thuật ngữ riêng → `N/A`.
+
 ## 3. User × Nghiệp vụ (mỗi nghiệp vụ đúng 1 OWNER-USER)
 | # | Nghiệp vụ | Owner-user | User liên quan (cross) | Phụ thuộc NV | Tần suất | Ưu tiên |
 |---|---|---|---|---|---|---|
@@ -60,6 +67,15 @@ ttl_days: {{90 cho flow hay đổi | 180 cho domain ổn định}}
 
 > Mỗi nhánh (duyệt / từ chối) đều có điểm kết — không nhánh nào treo.
 
+## 5b. Đối tượng & vòng đời trạng thái (mỗi đối tượng đổi trạng thái có 1 bảng)
+| Đối tượng | Trạng thái | Ai/điều gì chuyển sang | Trạng thái kế | Không được phép |
+|---|---|---|---|---|
+| Đơn | chờ duyệt | chủ shop duyệt | đã duyệt | nhân viên tự duyệt (R1) |
+| Đơn | chờ duyệt | chủ shop từ chối | từ chối (kết) | — |
+| Đơn | đã duyệt | — | — | quay về chờ duyệt |
+
+> Trạng thái nào không có đường ra mà không phải trạng thái kết = flow treo. Đối tượng không đổi trạng thái → `N/A`.
+
 ## 6. Flow optimization log (bằng chứng đã tối ưu — cho /audit)
 | Flow | Candidate đã cân nhắc | Chọn / Loại | Lý do (theo rubric) | Đánh giá bởi | Conflict & xử (nếu có) |
 |---|---|---|---|---|---|
@@ -79,9 +95,20 @@ ttl_days: {{90 cho flow hay đổi | 180 cho domain ổn định}}
 ## 9. Rules & Invariants (luôn đúng — triage gọi vi phạm = invariant break)
 | # | Rule | Edge case |
 |---|---|---|
-| R1 | Chỉ chủ shop duyệt được đơn | nhân viên cố duyệt → chặn |
-| R2 | Kho không bị trừ 2 lần cho 1 đơn | duyệt → từ chối → duyệt lại |
-| R3 | Đơn từ chối phải hoàn kho tạm trong cùng thao tác | mất mạng giữa chừng → không hoàn nửa vời |
+| R1 | Chỉ chủ shop duyệt được đơn `[nguồn: user]` | nhân viên cố duyệt → chặn |
+| R2 | Kho không bị trừ 2 lần cho 1 đơn `[nguồn: code src/stock]` | duyệt → từ chối → duyệt lại |
+| R3 | Đơn từ chối phải hoàn kho tạm trong cùng thao tác `[nguồn: suy đoán — đã hỏi, chờ user]` | mất mạng giữa chừng → không hoàn nửa vời |
+
+> Mỗi Rule mang `[nguồn: user | tài liệu <file> | code <path> | suy đoán]`. Rule dễ vỡ phải có ≥1 AC nhắc đúng ID của nó (§10) — `ba-verify.sh --coverage` liệt kê ID chưa AC nào dẫn.
+
+## 9b. Ràng buộc & phi chức năng (chỉ ghi thứ ĐO được và thật sự ràng buộc nghiệp vụ này)
+| Loại | Ràng buộc | Ngưỡng / căn cứ |
+|---|---|---|
+| Bối cảnh dùng | `<nhân viên tạo đơn lúc mất sóng>` | `<đơn không mất, đồng bộ khi có mạng>` |
+| Dữ liệu | `<số điện thoại khách là dữ liệu cá nhân>` | `<không hiện cho vai không cần>` |
+| Khối lượng | `<500 đơn/ngày cao điểm>` | `<hàng đợi duyệt vẫn truy đủ>` |
+
+> Không có ràng buộc nào ngoài mặc định → `N/A`. Ràng buộc nào thành hành vi thì phải có AC.
 
 ## 10. Acceptance Criteria — ORACLE (Given/When/Then · KHÔNG chứa từ UI · MỖI AC KÈM CÁCH TEST)
 > Luật ai-simple #04: spec sinh ra mà không test được = chưa xong. Mỗi AC khai `Test:` (loại test build sẽ viết) — **Then phải là điểm assert đo được bằng máy**. BA sở hữu test INTENT, build viết test CODE.
@@ -95,7 +122,7 @@ ttl_days: {{90 cho flow hay đổi | 180 cho domain ổn định}}
 ### AC-2 — Từ chối đơn hoàn kho  · Maps to flow: NV2  · Test: integration
 - **Given** một đơn "chờ duyệt" đang giữ kho tạm
 - **When** chủ shop từ chối kèm lý do
-- **Then** đơn chuyển "từ chối", toàn bộ kho tạm được hoàn, người tạo nhận được thông báo lý do
+- **Then** đơn chuyển "từ chối", toàn bộ kho tạm được hoàn trong cùng thao tác (R3), người tạo nhận được thông báo lý do
 - **Assert** (build kiểm): status=="từ chối" + stock_reserved trở về 0 + tồn tại 1 notification cho người tạo
 
 > Mỗi AC: atomic · testable · map tới 1 flow · có `Test:` (e2e | integration | unit | manual — manual chỉ khi thật sự không tự động được, nêu lý do) · **Assert đo được** · không nói "nút"/"màn"/"màu". AC không chỉ ra được cách test = chưa xong, viết lại Then cho tới khi đo được.
@@ -106,3 +133,4 @@ ttl_days: {{90 cho flow hay đổi | 180 cho domain ổn định}}
 
 ## History
 - v1 ({{YYYY-MM-DD}}): khởi tạo — `<phạm vi>`
+- Phản biện {{YYYY-MM-DD}}: `<n>` điểm · sửa `<a>` · giữ `<b>` (`<lý do>`) — Spec-Critic context sạch (SKILL §3)

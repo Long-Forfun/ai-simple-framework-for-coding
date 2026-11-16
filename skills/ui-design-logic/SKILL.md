@@ -44,13 +44,13 @@ BA (nhu cầu→ba-spec) → [ui-design-logic] (→design-spec) → build → ui
 ## Pipeline 7 bước — BẮT BUỘC theo thứ tự, không nhảy cóc
 
 ```
-0. Brief        → ĐỌC ba-spec nếu app-map có (do ba-flow-logic sinh): user-ladder seed từ §User registry, flow/screen từ §Flows, AC làm ràng buộc hành vi → KHÔNG hỏi lại user/job. KHÔNG có ba-spec → tự thu brief: ai dùng, làm gì, platform, logo/brand
+0. Brief        → ĐỌC ba-spec nếu app-map có (do ba-flow-logic sinh): user-ladder seed từ §User registry, flow/screen từ §Flows, AC làm ràng buộc hành vi → KHÔNG hỏi lại user/job. KHÔNG có ba-spec → tự thu brief: ai dùng, làm gì, platform, logo/brand. Dù có ba-spec hay không, hỏi gộp CÙNG LƯỢT 2 thứ spec hành vi không có: ảnh/URL phần mềm user ĐANG dùng cho việc này + một mẫu dữ liệu thật → ghi vào mục **Hướng hình** (01 §7)
 1. IA + hành vi → THANG USER (loại × 3 câu — TIẾP NỐI từ ba-spec nếu có, không dựng lại) → object model, flow map, screen map + BUDGET, entry/step-tiếp/trạng thái/action→expectation → viết DESIGN-SPEC.md
 2. Layout       → grid, density budget từng màn hình, quy tắc collapse/expand
 3. Components   → tra decision table: component nào, text viết sao
 4. Tokens       → màu (hoà logo), font, spacing — stack khoá React+Tailwind+shadcn
 5. Platforms    → desktop/tablet/mobile = 3 design con; iOS theo HIG, Android theo Material
-6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, check, sửa, lặp
+6. QA loop      → chạy preview, screenshot từng màn hình ở 3 kích thước, Critic context sạch chấm (06 §1), sửa, lặp
 ```
 
 **DESIGN-SPEC.md là chốt chặn**: chưa có spec (bước 1) thì CHƯA được viết code UI.
@@ -81,6 +81,10 @@ Mỗi quy tắc mang đúng 1 nhãn. Vi phạm xử THEO NHÃN, không theo cả
   ("user thích/thấy gớm" không phải lý do — gu cấp project sống ở mục Anti-references của spec).
   Không có dòng ngoại lệ = vi phạm.
 - **[STACK]** — convention của stack đã chọn. Chỉ áp khi project dùng stack đó.
+
+**Đầu vào & nghiệm thu (v1.26.0 — luật cấm chỉ cho SÀN, hai luật này cho hướng và cho người chấm):**
+- [DEF] **Hướng hình trước khi code**: design-spec có mục `## Hướng hình` (01 §7) viết TRƯỚC bước 2 — tham chiếu do user đưa (file/URL/ảnh; AI cấm tự kể tên sản phẩm nổi tiếng làm tham chiếu), thứ giữ quen thuộc, ≤ 3 quyết định riêng có lý do audience, nguồn dữ liệu thật. Màn `product` không bị ép khác biệt. *(ép bởi `design-verify.sh` WARN thiếu mục)*
+- [DEF] **Người dựng không tự chấm**: vòng QA cuối do Critic context sạch chấm — chỉ nhận screenshot + design-spec (+ ảnh tham chiếu nếu có), không nhận code hay lời giải thích của người dựng; trả DANH SÁCH ĐIỂM LỆCH, không chấm điểm. Task nhỏ (sửa 1 component) miễn. *(ép bởi dòng `Phản biện:` ở mục Nghiệm thu của design-spec, `/audit` đếm; 06 §1)*
 
 **Kiến trúc & hành vi:**
 - [INV] 1 màn hình = 1 nhiệm vụ chính = đúng 1 primary button

@@ -57,6 +57,7 @@ Tie-breaker: cùng trigger "rà soát" → BA = phân tích nhu cầu/flow TRƯ�
 
 ```
 B0 Sàng        → LOGIC vs REQUEST (ai-simple #05); need mơ hồ/mới → chạy; đổi nhỏ rõ → trả về build
+               + ĐỌC HIỆN TRẠNG trước khi hỏi: app-map, code trong `covers`, data model, spec liền kề — điều repo đã trả lời thì KHÔNG hỏi, KHÔNG đoán (§5 Nguồn)
 B1 User registry → liệt kê MỌI actor (loại user/role/tier, cả external system, cron, admin) = ĐIỂM XUẤT PHÁT
 B2 User×Nghiệp vụ → mỗi user có nghiệp vụ gì; mỗi nghiệp vụ buộc đúng 1 OWNER-USER
 B3 Cross-user map → nghiệp vụ dính nhiều user: ai bàn giao ai · điều kiện chuyển · KHÔNG dead-end
@@ -84,11 +85,13 @@ TeamCreate team_name=ba-flow-<n>
 | **Flow-Suggester** (fan-out) | Mỗi nghiệp vụ → ≥2 biến thể flow theo các góc: *ngắn nhất / an toàn nhất / ít cross nhất* | Không tự chốt |
 | **Flow-Optimizer** (đánh giá) | Chấm biến thể theo **rubric** → chọn/ghép flow tối ưu + ghi lý do loại biến thể khác | Không nói UI |
 | **Domain-Specialist** (động) | Khi nghiệp vụ CHUYÊN (kế toán/công nợ/kho/thanh toán/bảo hiểm/y tế/pháp lý/CSKH…) → đánh giá đúng & đủ theo chuẩn nghiệp vụ đó | Không generic |
-| **Cross-User-Integrity** | Soi toàn map: handoff orphan/treo, cross thừa, nghiệp vụ không owner → trả danh sách điểm gãy | Không sửa, chỉ báo |
+| **Cross-User-Integrity** (kiêm **Spec-Critic**, CONTEXT SẠCH) | Soi toàn map: handoff orphan/treo, cross thừa, nghiệp vụ không owner. Kiêm phản biện spec: nhận ĐÚNG 2 thứ — **nguyên văn yêu cầu gốc của user** + ba-spec nháp (KHÔNG nhận hội thoại/lý lẽ của Orchestrator) + output `ba-verify.sh --coverage` → trả danh sách: yêu cầu gốc chưa có AC · Rule/handoff chưa AC nào dẫn · dòng `[nguồn: suy đoán]` chạm Rule/AC · thuật ngữ dùng 2 nghĩa | Không sửa, chỉ báo |
 
 Cơ chế: team-agent (Agent/Task), **TeamDelete sau khi user confirm done**. App nhỏ/1 user/nghiệp vụ đơn giản → Orchestrator chạy tuần tự, không cần spawn (đừng over-engineer). Spawn khi: ≥3 nghiệp vụ, hoặc có nghiệp vụ chuyên, hoặc có cross-user, hoặc user yêu cầu "tối ưu flow".
 
 **Thẩm quyền & xử mâu thuẫn (ai chốt flow cuối):** Domain-Specialist là **CỔNG HỢP-LỆ chạy TRƯỚC Optimizer** — loại biến thể sai chuẩn nghiệp vụ; **Specialist có quyền veto** (sai chuẩn = hỏng thật, thắng mọi tối ưu hình thức). Optimizer chỉ chọn **trong các biến thể đã hợp-chuẩn**. Mâu thuẫn không gỡ → **BA-Orchestrator là trọng tài cuối**, ghi conflict + quyết định vào Flow optimization log (§6 ba-spec). Flow "chốt" = qua Specialist (nếu chuyên) + Optimizer; user chỉ xác nhận ở mức ba-spec tổng, không vi mô từng flow.
+
+**Người viết không tự chấm bài mình** [DEF — ép bởi dòng `Phản biện:` trong History của ba-spec, `/audit` đếm]: trước khi chốt ba-spec, Spec-Critic chạy ở context sạch (subagent mới; runtime không có subagent → đọc lại ở lượt riêng CHỈ với yêu cầu gốc + file spec). Orchestrator xử từng điểm: sửa spec, hoặc ghi lý do không sửa. Ghi 1 dòng vào History: `Phản biện <ngày>: <n> điểm · sửa <a> · giữ <b> (lý do)`. Miễn khi spec ≤ 1 nghiệp vụ không cross và không có dòng suy đoán nào chạm Rule/AC.
 
 ---
 
@@ -128,6 +131,8 @@ Flow trượt ≥1 tiêu chí → Optimizer trả về Suggester sửa, KHÔNG �
 
 **Elicitation (solo+AI):**
 - Hỏi **1 lượt gộp**, fail-closed: thiếu info → chọn giả định an toàn + ghi **Assumptions**, KHÔNG hỏi lặt vặt. Chỉ **RED** (sửa/xoá AC-flow mà downstream đang phụ thuộc) mới dừng hỏi đúng 1 câu gộp.
+- **Nguồn của luật** [DEF — ép bởi `ba-verify.sh --coverage` đếm `Rule có [nguồn:]`]: mỗi dòng ở §9 Rules mang `[nguồn: user | tài liệu <file> | code <path> | suy đoán]`. Fail-closed KHÔNG có nghĩa AI được lặng lẽ bịa luật nghiệp vụ: giả định về ngưỡng/quyền/tiền/trạng thái (thứ sẽ thành Rule hoặc Then của AC) phải nằm TRONG chính lượt hỏi gộp đó, kèm phương án mặc định; user không trả lời → giữ mặc định, nhãn vẫn là `suy đoán` cho tới khi user xác nhận. Giả định vặt (đặt tên, thứ tự bước) vẫn tự quyết như cũ.
+- **Luật phải có AC dẫn tới** [DEF — ép bởi `ba-verify.sh --coverage`, báo cáo, không chặn commit]: Rule dễ vỡ (quyền, tiền, không-trừ-2-lần, hết hạn) và mỗi handoff phải được ≥1 AC nhắc đúng ID (`R3`, `H1`) trong block AC. Đo 2026-11-16 trên 15 ba-spec của 4 repo: chỉ 12/129 Rule và 1/37 handoff truy được tới một AC bằng ID — phần còn lại triage phải đoán AC nào là oracle của luật nào.
 
 ---
 
@@ -160,6 +165,7 @@ Sửa xong → bump `last_verified`, kích lại design/build nếu cần. Ghi 1
 
 ## 8. Exit gates (tự tick khi CHẠY xong, không pre-tick)
 - [ ] **CỔNG MÁY**: `bash ba-verify.sh --staged` exit 0 — chặn ba-spec 0 AC / AC thiếu `Test:`/`Assert`. Wire vào pre-commit để CHẶN THẬT (không chỉ honor-system). Đây là cơ giới hoá luật "nghiệp vụ vẽ ra mà không test được = chưa xong".
+- [ ] `bash ba-verify.sh --coverage` đã chạy; ID chưa có AC dẫn đã bổ sung AC hoặc ghi lý do; dòng `Phản biện:` có trong History (hoặc thuộc diện miễn §3)
 - [ ] Mọi nghiệp vụ có đúng 1 owner-user; không nghiệp vụ mồ côi
 - [ ] Mọi cross-user handoff có người nhận + điều kiện; Cross-User-Integrity báo 0 điểm gãy
 - [ ] Mọi flow có Input/Output + start/end; không dead-end
@@ -181,6 +187,9 @@ Sửa xong → bump `last_verified`, kích lại design/build nếu cần. Ghi 1
 | Tự nhận flow "tối ưu" không đánh giá | Qua Optimizer + Domain-Specialist nếu chuyên |
 | AC mô tả nút/màn | AC là hành vi G/W/T, anti-UI (§5) |
 | Hỏi user lặt vặt từng câu | 1 lượt gộp, fail-closed, chỉ RED mới hỏi |
+| Hỏi điều repo đã trả lời; bịa luật nghiệp vụ rồi ghi như sự thật | Đọc hiện trạng ở B0; Rule mang `[nguồn:]`, suy đoán chạm Rule/AC vào lượt hỏi gộp (§5) |
+| Orchestrator viết xong tự chấm "đạt" | Spec-Critic context sạch + dòng `Phản biện:` (§3) |
+| Rule nằm trong bảng §9 nhưng không AC nào kiểm | AC dẫn ID Rule/handoff; `--coverage` liệt kê ID trống (§5) |
 | Tự chế risk-tier/memory/coupling | Defer ai-simple (§6) |
 | Sửa code khi triage handoff về | Sửa SPEC, không sửa code (§7) |
 

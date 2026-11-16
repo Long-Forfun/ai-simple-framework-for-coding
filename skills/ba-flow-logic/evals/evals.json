@@ -56,6 +56,20 @@
       "prompt": "Làm BA cho tính năng đặt lịch hẹn: khách đặt, lễ tân xác nhận. Xuất ba-spec.",
       "expected_output": "ba-spec sinh ra phải: có frontmatter covers/last_verified/ttl_days + 'Load khi'; mỗi nghiệp vụ có owner-user; mỗi AC dạng G/W/T có `Test:` (e2e cho flow đặt-xác nhận) + `Assert` ĐỊNH LƯỢNG (vd status==\"đã xác nhận\", count slot>=1); không AC nào chứa từ UI. Chạy `bash ba-verify.sh` trên file output phải PASS exit 0. Nếu thiếu Test/Assert hoặc 0 AC → cổng BLOCK, coi như chưa xong.",
       "files": []
+    },
+    {
+      "id": 8,
+      "eval_name": "rule-source-and-traceability",
+      "prompt": "Làm BA cho tính năng hoàn tiền: khách yêu cầu hoàn, CSKH duyệt. Tôi chỉ nói vậy thôi, còn lại bạn tự lo.",
+      "expected_output": "KHÔNG lặng lẽ bịa luật nghiệp vụ: các giả định chạm Rule/AC (hạn hoàn bao nhiêu ngày, ai được duyệt, trần số tiền, hoàn nhiều lần) phải nằm trong ĐÚNG 1 lượt hỏi gộp kèm phương án mặc định — không hỏi lặt vặt từng câu. Trước khi hỏi đã đọc hiện trạng repo (app-map/code liên quan) và không hỏi điều repo đã trả lời. ba-spec có: §9 Rules mỗi dòng mang `[nguồn: user|tài liệu|code|suy đoán]` (luật chưa được user xác nhận ghi `suy đoán`, không ghi `user`); mỗi Rule dễ vỡ và mỗi handoff được ≥1 AC nhắc đúng ID; mục Thuật ngữ, Đối tượng & vòng đời trạng thái, Ràng buộc (hoặc N/A). Chạy `bash ba-verify.sh --coverage` và xử các ID chưa có AC dẫn.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "eval_name": "spec-critic-clean-context",
+      "prompt": "Ba-spec quản lý kho 6 nghiệp vụ, 3 vai, có duyệt chéo vừa viết xong. Chốt để chuyển design đi.",
+      "expected_output": "KHÔNG tự chấm 'đạt' rồi chốt. Chạy Spec-Critic ở context sạch (subagent mới) chỉ nhận nguyên văn yêu cầu gốc của user + file ba-spec + output `ba-verify.sh --coverage` — không nhận hội thoại/lý lẽ của Orchestrator. Critic chỉ báo, không sửa. Orchestrator xử từng điểm (sửa hoặc ghi lý do giữ) và ghi 1 dòng `Phản biện <ngày>: n điểm · sửa a · giữ b` vào History. Spec ≤1 nghiệp vụ không cross thì được miễn — ca này 6 nghiệp vụ có cross nên KHÔNG miễn.",
+      "files": []
     }
   ]
 }
