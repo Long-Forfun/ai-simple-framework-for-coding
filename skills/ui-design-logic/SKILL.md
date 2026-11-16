@@ -112,6 +112,7 @@ Mỗi quy tắc mang đúng 1 nhãn. Vi phạm xử THEO NHÃN, không theo cả
 - [INV] **Thứ bấm được phải là thẻ bấm được**: `onClick` trên `div/span/li/td` thiếu `role`+`tabIndex`+`onKeyDown` là vi phạm — và cách sửa mặc định là đổi sang `<button type="button">`, không phải dán `role="button"` cho đủ lễ. *(nguồn ý tưởng IMP-semantic-html · ép bởi hook 1d-f BLOCK + 06 §2)*
 
 **Visual:**
+- [DEF] **Vẻ ngoài phải đo được**: khi user chê "nhìn như AI" hoặc trước/sau một đợt redesign, chạy `npx ai-simple ui-fingerprint` và ghi số trước/sau vào báo cáo (06 §3). *(ép bởi `lib/ui-fingerprint.js` — báo cáo, không chặn)*
 - [DEF] 1 neutral ramp + 1 accent + 4 màu semantic (+ 1 categorical palette RIÊNG cho chart nếu app có chart nhiều series — 04 §1). Logo xử lý theo 04, không nhét thô
 - [INV] Text contrast ≥ 4.5:1 (chữ lớn ≥ 24px: ≥ 3:1). Dark mode phải được kiểm tra, không phải "để sau"
 - [DEF] **FONT — mặc định SYSTEM FONT STACK**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif` (native, có sẵn tiếng Việt, không tải Google Fonts). Số: system mono + tabular-nums. UI nghiệp vụ/nội bộ: không serif/display trang trí, không font "cá tính".

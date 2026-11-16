@@ -743,6 +743,7 @@ async function cmdSelfTest(args = {}) { // dùng cho `npm test` của chính pac
     ['script perf-budget (hook <=20s o quy mo 20 doc/80 path)', () => nodeAsync([path.join(PKG_ROOT, 'scripts', 'perf-budget.js')], { cwd: PKG_ROOT }), path.join(PKG_ROOT, 'scripts', 'perf-budget.js'), true],
     ['script eval-runner --self-test (schema evals + tách dữ liệu blind)', () => nodeAsync([path.join(PKG_ROOT, 'scripts', 'eval-runner.js'), '--self-test'], { cwd: PKG_ROOT }), path.join(PKG_ROOT, 'scripts', 'eval-runner.js')],
     ['script mutation-suite --self-test', () => shAsync([MUT, '--self-test'], { cwd: PKG_ROOT }), MUT],
+    ['lib ui-fingerprint --self-test', () => nodeAsync([path.join(PKG_ROOT, 'lib', 'ui-fingerprint.js'), '--self-test'], { cwd: PKG_ROOT })],
     ['script mutation-suite (full: 0 false-pass/0 false-block)', () => shAsync([MUT], { cwd: PKG_ROOT }), MUT, true],
   ];
   // Skill-verifier fixtures (G1 bộ chấm điểm — self-test hợp nhất): MỌI skills/*/*-verify.sh có
@@ -1104,6 +1105,9 @@ Usage:
       Cài hook + doc-health + templates + workflow, set hooksPath, chạy self-test.
       --profile tiny: chỉ CLAUDE.md + risk tier (project < 10 file); repo nhỏ được tự gợi ý.
       Các profile ngoài tiny: bộ file cài giống core — khác biệt là nguyên tắc nào BẬT (SKILL.md §Bước 0).
+  npx ai-simple ui-fingerprint [thư-mục] [--json]
+      Đo "vẻ AI" của code giao diện trên cả repo (họ màu, gradient, bo góc, bóng, emoji...) so với luật
+      ui-design-logic. Báo cáo — luôn exit 0, không chặn commit.
   npx ai-simple parallel <plan|claim|extend|renew|status|ready|merge|recover|release|self-test>
       Nguyên tắc 13 — chia lot MECE, claim atomic có lease, worktree per lot, merge queue.
   npx ai-simple doctor
@@ -1129,6 +1133,7 @@ switch (cmd) {
   case 'parallel': require('../lib/parallel.js').main(process.argv.slice(3)); break;
   case 'init': cmdInit(args); break;
   case 'doctor': cmdDoctor(); break;
+  case 'ui-fingerprint': require('../lib/ui-fingerprint.js').main(process.argv.slice(3)); break;
   case 'update': cmdUpdate(args); break;
   case 'doc-status': passthrough(['--status']); break;
   case 'doc-health': passthrough(args.ci ? ['--ci'] : []); break;

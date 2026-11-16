@@ -1,6 +1,6 @@
 {
   "name": "ai-simple",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "AI-agent-friendly project methodology: hierarchical context, doc-code coupling map, write/read verification gates, enforcement hooks, doc-health CI. This CLI installs and maintains the deterministic layer (hooks, scripts, templates); the reasoning layer ships as a Claude Code skill in the same repo.",
   "bin": {
     "ai-simple": "bin/ai-simple.js"

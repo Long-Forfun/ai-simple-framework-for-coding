@@ -103,6 +103,12 @@ Task mới cả app: đủ ma trận màn hình × viewport.
 | (C) "Xấu" nhưng thật ra THIẾU hành vi | Màn thiếu trạng thái/nghiệp vụ mà spec cũng không có | KHÔNG sửa UI — handoff BA (ba-flow-logic), spec sai/thiếu |
 | (D) App thật đang lỗi chức năng | Button không bấm được, sai dữ liệu, sai role, treo | ui-ux-triage (test như user thật, phân bucket) |
 
+**Đo trước khi sửa case B** (v1.28.0): chạy `npx ai-simple ui-fingerprint` — in số họ màu đang dùng so với luật 04 §1 và mật độ
+các mẫu hay gặp ở UI do máy sinh (gradient, họ tím, bo góc lớn, bóng nặng, kính mờ, emoji, màu rời) trên mỗi 1000 dòng.
+Ghi con số TRƯỚC vào báo cáo, sửa, chạy lại ghi con số SAU — "đỡ giống AI hơn" phải là một hiệu số, không phải cảm giác.
+Đây là báo cáo (luôn exit 0): repo dùng token thuần ra 0 họ màu là đúng; bo góc lớn có trong design-system đã chốt thì
+không phải lỗi — đối chiếu với mục Ngoại lệ đã duyệt trước khi coi là vi phạm.
+
 **Guardrail redesign (case A/B): đổi HOW nhìn, giữ WHAT chạy.** Được đổi: layout, spacing,
 component, hierarchy, density, mobile adaptation. KHÔNG tự đổi: AC, permission, flow, dữ liệu,
 trạng thái nghiệp vụ — muốn đổi là việc BA, handoff ngược. Đổi token toàn cục / tái cấu trúc nav

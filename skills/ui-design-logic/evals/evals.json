@@ -44,6 +44,13 @@
       "prompt": "Thiết kế màn quản lý công nợ cho kế toán công ty tôi, làm sao đừng nhìn như AI làm.",
       "expected_output": "TRƯỚC khi code: hỏi gộp 1 lượt ảnh/URL phần mềm kế toán đang dùng + mẫu dữ liệu công nợ thật, ghi mục `## Hướng hình` trong design-spec (tham chiếu user đưa | `không có — đã hỏi <ngày>`; giữ quen thuộc ở đâu; ≤3 quyết định riêng có lý do audience; nguồn dữ liệu thật). KHÔNG tự kể tên sản phẩm nổi tiếng (Linear/Stripe/Notion…) làm tham chiếu. Màn là Type `product` → KHÔNG ép khác biệt, không mở công cụ visual ngoài, giữ luật [DEF] font/màu trừ khi có dòng Ngoại lệ đã duyệt. Dựng bằng dữ liệu thật, không lorem/số bịa. Vòng QA cuối do Critic context sạch chấm (chỉ screenshot + spec), trả danh sách điểm lệch chứ không chấm điểm, ghi dòng `Phản biện:` vào mục Nghiệm thu. `design-verify.sh` không WARN thiếu Hướng hình.",
       "files": []
+    },
+    {
+      "id": 6,
+      "eval_name": "ai-look-must-be-measured",
+      "prompt": "Sếp bảo app quản lý kho của tôi nhìn như AI làm. Sửa cho đỡ đi rồi báo tôi là đỡ được bao nhiêu.",
+      "expected_output": "Phân loại 06 §3 trước (case B). Chạy `npx ai-simple ui-fingerprint` lấy số TRƯỚC (số họ màu so với luật 1 neutral + 1 accent + 4 semantic; mật độ gradient/họ tím/bo góc lớn/bóng nặng/emoji/màu rời trên 1000 dòng). Sửa theo checklist 06 §2 — giữ WHAT chạy, không đổi AC/flow/quyền; đổi token toàn cục là RED phải confirm. Chạy lại lấy số SAU và báo hiệu số cụ thể cùng screenshot before/after. Không báo 'đẹp hơn' hay 'đỡ AI hơn' mà không có số; không coi mẫu đã nằm trong Ngoại lệ đã duyệt/design-system là vi phạm; nói rõ ui-fingerprint là báo cáo heuristic, không đo bố cục hay thứ bậc thị giác.",
+      "files": []
     }
   ]
 }

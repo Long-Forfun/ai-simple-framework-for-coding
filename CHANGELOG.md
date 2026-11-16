@@ -4,6 +4,31 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.28.0 — 2026-11-16 (`ui-fingerprint` — "vẻ AI" của giao diện có con số)
+
+Nguồn: lời than số một là "UI ra AI style", nhưng hệ chưa có phép đo nào cho nó — hook 1d chỉ soi dòng thêm của từng
+commit, checklist 06 §2 chấm bằng mắt từng màn.
+
+- **`ai-simple ui-fingerprint [thư-mục] [--json]`** (`lib/ui-fingerprint.js`, zero-dep, BÁO CÁO — luôn exit 0): đếm số họ
+  màu đang dùng so với luật 04 §1 (1 neutral + 1 accent + 4 semantic) và mật độ trên 1000 dòng của 9 mẫu hay gặp ở UI do
+  máy sinh (gradient nền, gradient chữ, họ tím, bo góc lớn, bóng nặng, kính mờ, phóng khi rê, emoji, màu rời).
+  7 fixture, gồm 2 ca chống-oan: repo không có UI → bỏ qua; UI dùng token thuần → mọi số bằng 0.
+- **ui-design-logic**: luật [DEF] "vẻ ngoài phải đo được" + 06 §3 case B ghi số trước/sau; +1 eval.
+
+Đo 2026-11-16 trên 4 repo tiêu thụ:
+
+| Repo | Họ màu có sắc (luật: 5) | Họ neutral (luật: 1) | Họ tím /1000 dòng | Gradient nền | Bo góc lớn | Emoji |
+|---|---|---|---|---|---|---|
+| ForFish | 0 (token thuần) | 0 | 0 | 0,15 | 2,81 | 0,20 |
+| SDMap | 0 (token thuần) | 0 | 0 | 0,02 | 1,36 | 0,46 |
+| AMS-Aqua | 10 | 1 | 0,06 | 0,67 | 0,80 | 0,75 |
+| CRM SDVICO | 16 | 3 | 1,72 (424 chỗ) | 0,04 | 0,02 | 0,35 |
+
+Giới hạn: grep heuristic — không đo bố cục, thứ bậc thị giác hay nội dung; màu đặt qua token CSS không được đếm; mẫu nằm
+trong design-system đã chốt không phải lỗi. Dùng để so trước/sau trên CÙNG một repo, không để xếp hạng repo.
+
+- **RE-APPLY**: chạy `npx ai-simple ui-fingerprint` ở project có UI, ghi số hiện tại vào design-spec làm mốc
+
 ## v1.27.0 — 2026-11-16 (doctor soi spec trên đĩa + chuẩn kỹ thuật chung + thiết kế kỹ thuật cho phần không UI)
 
 Nguồn: plan cuối sau v1.26.0, qua 1 vòng review độc lập (subagent context sạch — trả REVISE, 9 điểm sửa đều đã nhận).
