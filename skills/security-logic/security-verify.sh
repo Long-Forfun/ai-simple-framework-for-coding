@@ -194,7 +194,7 @@ if [ "$MODE" = "--self-test" ]; then
 fi
 
 if [ "$MODE" = "--staged" ]; then
-  FILES=$(git -c core.quotepath=false diff --cached --name-only 2>/dev/null | grep -iE 'security-review.*\.md$' || true)
+  FILES=$(git -c core.quotepath=false diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -iE 'security-review.*\.md$' || true)
   [ -z "$FILES" ] && { echo "security-verify: khong co security-review staged -> skip (exit 0)"; exit 0; }
   FAIL=0; TMP=$(mktemp) || exit 1
   # Wave 2a [ENFORCED]: while-read thay for-word-split — ten file co DAU CACH/tieng Viet khong bi SKIP
