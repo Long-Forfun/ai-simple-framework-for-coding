@@ -188,6 +188,11 @@ ai-simple--skill-product-dev/
     ├── app-map-doc.md.template
     ├── ADR.md.template
     ├── context-router.agent.md.template
+    ├── ba-expert.agent.md.template      # agent chuyên gia = vỏ mỏng trỏ skill + bộ nhớ theo vai (ADR 004)
+    ├── ui-expert.agent.md.template
+    ├── security-expert.agent.md.template
+    ├── verifier.agent.md.template       # thẩm định độc lập, mặc định CHƯA ĐẠT cho tới khi có bằng chứng
+    ├── agent-memory-README.md.template  # giao thức bộ nhớ theo vai → docs/agent-memory/README.md
     ├── fl.command.md.template
     ├── pre-commit.hook.template         # v2 — enforcement hook (chạy được ngay với default Supabase)
     ├── doc-health-report.sh.template    # v4 — doc-lag, symbol chết, broken links, lint, --status, --self-test

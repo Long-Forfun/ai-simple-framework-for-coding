@@ -4,6 +4,20 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.27.0 — 2026-11-25 (agent chuyên gia vỏ mỏng + bộ nhớ theo vai trong git)
+
+Nguồn: đánh giá github.com/msitarzewski/agency-agents tại `8ae6164`. Không cài; nội hoá ba ý, viết lại. Chi tiết + phản biện: `docs/adr/004-agent-chuyen-gia-va-bo-nho-theo-vai.md`.
+
+Thay đổi:
+- **4 agent chuyên gia** cài bởi `init`: `ba-expert`, `ui-expert`, `security-expert`, `verifier`. Mỗi agent là vỏ mỏng (vai, ranh giới, dạng trả về) trỏ tới skill; không chép luật của skill.
+- **`verifier`**: thẩm định độc lập trước khi báo xong, mặc định CHƯA ĐẠT, chỉ nhận bằng chứng tự chạy.
+- **Bộ nhớ theo vai**: `docs/agent-memory/<vai>.md` trong git. Mỗi mục một dòng: mã `M-NNN` + `evidence` + `last_verified` + `bỏ khi`; trần 40 mục. Giao thức: `docs/agent-memory/README.md`.
+- **Cổng máy** `skills/ai-simple-product-dev/agent-memory-verify.sh` (+ `--self-test`, 2 fixture chống chặn oan): chạy trong `npm test` và `doctor`. Chưa nối pre-commit (nợ ghi ở ADR 004).
+- `/learn` bước 4 và nguyên tắc 12 vòng B: thêm đích promote "bộ nhớ theo vai".
+- `CLAUDE.md.template`: bảng giao việc cho 4 agent.
+
+**RE-APPLY**: project đã init trước v1.27.0 chạy `ai-simple init` (file đã có được giữ nguyên) để nhận 4 agent + `docs/agent-memory/README.md`; chép bảng "Agent chuyên gia" từ `CLAUDE.md.template` vào CLAUDE.md nếu muốn main agent tự giao việc.
+
 ## v1.26.0 — 2026-11-09 (BA + UI/UX v2 — viết lại từ án lệ 8 repo, hết "đủ mục mà vẫn sai")
 
 Nguồn: rà ~6.000 commit của ForFish, SDMap, IUU-REPORT, mkn-3, AMS---Aqua, AI-Assistant, SHT-CRM, forlife-web.

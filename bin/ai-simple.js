@@ -328,6 +328,12 @@ const FILES = [
   { tpl: 'audit.command.md.template',        dest: '.claude/commands/audit.md',              stackable: false },
   { tpl: 'learn.command.md.template',        dest: '.claude/commands/learn.md',              stackable: false },
   { tpl: 'context-router.agent.md.template', dest: '.claude/agents/context-router.md',       stackable: false },
+  // v1.27.0 (ADR 004) — agent chuyên gia = vỏ mỏng trỏ skill + bộ nhớ theo vai trong git (docs/agent-memory)
+  { tpl: 'ba-expert.agent.md.template',       dest: '.claude/agents/ba-expert.md',            stackable: false },
+  { tpl: 'ui-expert.agent.md.template',       dest: '.claude/agents/ui-expert.md',            stackable: false },
+  { tpl: 'security-expert.agent.md.template', dest: '.claude/agents/security-expert.md',      stackable: false },
+  { tpl: 'verifier.agent.md.template',        dest: '.claude/agents/verifier.md',             stackable: false },
+  { tpl: 'agent-memory-README.md.template',   dest: 'docs/agent-memory/README.md',            stackable: false },
   { tpl: 'doc-health.workflow.yml.template', dest: '.github/workflows/doc-health.yml',       stackable: false, optionalFlag: 'no-workflow' },
   // Bộ template viết-doc để dành trong repo (copy khi cần viết doc mới)
   { tpl: 'app-map-doc.md.template',          dest: 'docs/_templates/app-map-doc.md.template',          stackable: false },
@@ -487,6 +493,17 @@ async function cmdDoctor() {
   else if (up) add(`update-check: v${PKG.version} là bản mới nhất${up.cached ? ' (cache ≤ 7 ngày)' : ''}`, 'PASS');
 
   for (const t of runSelfTests()) add(t.name, t.ok ? 'PASS' : 'FAIL', t.ok ? '' : t.out.split('\n').find((l) => l.includes('FAIL')) || 'xem output');
+
+  // v1.27.0 — bộ nhớ theo vai của agent chuyên gia: chỉ kiểm khi project ĐÃ có docs/agent-memory
+  // (project cũ chưa cài agent không bị WARN/FAIL oan). Lệch hình dạng = FAIL vì bộ nhớ nạp thẳng vào AI.
+  const memVerify = path.join(PKG_ROOT, 'skills', 'ai-simple-product-dev', 'agent-memory-verify.sh');
+  if (fs.existsSync('docs/agent-memory') && fs.existsSync(memVerify)) {
+    const r = sh([memVerify]);
+    const out = (r.stdout + r.stderr).split('\n');
+    const suspect = out.filter((l) => l.startsWith('WARN')).length;
+    add('agent-memory (mã + evidence + last_verified + bỏ-khi)', r.status !== 0 ? 'FAIL' : suspect ? 'WARN' : 'PASS',
+      r.status !== 0 ? (out.find((l) => l.startsWith('FAIL')) || 'xem `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh`') : suspect ? `${suspect} mục SUSPECT quá hạn — đối chiếu lại rồi sửa last_verified` : '');
+  }
 
   if (fs.existsSync('CLAUDE.md')) {
     const size = fs.statSync('CLAUDE.md').size;

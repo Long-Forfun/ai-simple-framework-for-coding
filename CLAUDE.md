@@ -57,7 +57,7 @@ Thân commit ghi rõ hội đồng/án lệ nếu quyết định đến từ đ
 |---|---|---|
 | Mỗi commit | hook: covers-sync, secret-scan, encoding, budget | Máy |
 | Mỗi PR | `npm run gates` (self-test + dogfood + ship + rule-enforcer) | Máy/CI |
-| Quý | `/audit` ở project tiêu thụ; so NOTICE.md với HEAD 3 nguồn (1 dòng kết luận) | AI + user duyệt |
+| Quý | `/audit` ở project tiêu thụ; so NOTICE.md với HEAD các nguồn (1 dòng kết luận) | AI + user duyệt |
 
 ## Quick commands
 ```bash

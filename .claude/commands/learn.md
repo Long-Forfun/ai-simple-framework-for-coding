@@ -40,6 +40,7 @@ Append vào `docs/learning/events.jsonl` (tạo nếu chưa có; **parallel mode
 
 - `explicit-instruction` → ghi luôn rule ở scope đúng (memory nếu user-scope theo format NT07; app-map nếu domain; design-system/CLAUDE nếu project).
 - ≥ 2–3 case ĐỘC LẬP (khác session, cách nhau thời gian) cùng project → project rule.
+- Quyết định thuộc RIÊNG một vai chuyên gia (BA / UI / security / verifier), vai khác không cần biết → ghi vào `docs/agent-memory/<vai>.md` theo dạng một-dòng trong `docs/agent-memory/README.md`, rồi chạy `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh`. Vai khác cũng cần → KHÔNG ghi ở đó, ghi vào spec/app-map.
 - Mỗi rule mới BẮT BUỘC kèm: evidence links (SHA/event), `last_verified: <date>`, rollback condition. Rule không có 3 thứ này = không được ghi.
 - Chỉ 1 case + không explicit → dừng ở event, KHÔNG tạo rule. Ngoại lệ security/data-loss: assertion phải nêu RỦI RO CỤ THỂ + evidence tối thiểu `strong-accepted` — `weak-inferred` tự dán nhãn "security" không được đặc cách.
 - Parallel mode: khai `docs/learning/events/<run>-<lot>.jsonl` vào write_paths khi claim (hoặc `parallel extend`) — event file cũng là file của lot, không nằm ngoài doctrine R2.
