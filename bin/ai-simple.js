@@ -38,7 +38,7 @@ function findSh() {
 function sh(scriptAndArgs, opts = {}) {
   const shPath = findSh();
   if (!shPath) return { status: 127, stdout: '', stderr: 'khong tim thay sh (can Git for Windows hoac POSIX shell)' };
-  const r = spawnSync(shPath, scriptAndArgs, { encoding: 'utf8', cwd: opts.cwd || process.cwd() });
+  const r = spawnSync(shPath, scriptAndArgs, { encoding: 'utf8', cwd: opts.cwd || process.cwd(), env: opts.env ? { ...process.env, ...opts.env } : process.env });
   return { status: r.status === null ? 1 : r.status, stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
@@ -288,6 +288,38 @@ function installSkillJunction(src, dst, name, { replaceStale = false, log = cons
     return 'created';
   } catch (e) { log(`  WARN  .claude/skills/${name}: không tạo được junction (${e.code || e.message}) — tạo tay theo README §Cài 5 skill`); return 'err'; }
 }
+// v1.28.0 — kho nhớ cấp USER (tầng 2 của bộ nhớ theo vai): gu của user cho từng vai chuyên gia, dùng chung
+// MỌI repo trên MÁY NÀY. Owner chốt 2026-11-26: chỉ lưu trên máy, không remote. Có git local để hoàn tác.
+// Mỗi project trỏ tới bằng liên kết .claude/ai-simple-user (per-machine, gitignore — giống junction skill).
+const USER_LINK = path.join('.claude', 'ai-simple-user');
+function userHomeDir() { return process.env.AI_SIMPLE_USER_HOME || path.join(os.homedir(), '.ai-simple-user'); }
+function ensureUserHome({ home = userHomeDir(), link = USER_LINK, log = console.log } = {}) {
+  for (const d of ['agent-memory', 'learning']) fs.mkdirSync(path.join(home, d), { recursive: true });
+  if (!fs.existsSync(path.join(home, '.git'))) {
+    const r = spawnSync('git', ['init', '-q', home], { encoding: 'utf8' });
+    log(r.status === 0 ? `  OK    ${home} — kho nhớ cấp user, git local không remote (sửa sai bằng git revert)`
+      : `  WARN  ${home}: không git init được — tầng nhớ cấp user sẽ không có lịch sử để hoàn tác`);
+  }
+  let st = null; try { st = fs.lstatSync(link); } catch { /* chưa có */ }
+  if (st && st.isSymbolicLink()) { log(`  OK    ${link} — liên kết kho nhớ cấp user sẵn có (no-op)`); return 'ok'; }
+  if (st) { log(`  WARN  ${link} tồn tại nhưng không phải liên kết — bỏ qua (dời đi rồi chạy lại)`); return 'odd'; }
+  fs.mkdirSync(path.dirname(link), { recursive: true });
+  try {
+    fs.symlinkSync(home, link, 'junction');
+    log(`  OK    ${link} → ${home} (agent mọi repo đọc chung gu của user theo vai)`);
+    return 'created';
+  } catch (e) { log(`  WARN  ${link}: không tạo được liên kết (${e.code || e.message}) — agent chỉ còn bộ nhớ của repo`); return 'err'; }
+}
+function ensureUserLayer() {
+  try {
+    const gi = fs.existsSync('.gitignore') ? fs.readFileSync('.gitignore', 'utf8') : '';
+    if (!gi.includes('.claude/ai-simple-user')) {
+      fs.appendFileSync('.gitignore', `${gi.endsWith('\n') || gi === '' ? '' : '\n'}# Kho nhớ cấp user per-machine (ai-simple init) — gu riêng của user, cấm commit vào repo\n.claude/ai-simple-user\n`);
+      console.log('  OK    .gitignore += .claude/ai-simple-user');
+    }
+  } catch { /* gitignore read-only: doctor sẽ nhắc */ }
+  ensureUserHome();
+}
 function warnTrackedSkillPaths() {
   const tr = git(['ls-files', '.claude/skills/']);
   if (tr.status === 0 && tr.stdout.trim()) {
@@ -427,6 +459,7 @@ function cmdInit(args) {
     }
     warnTrackedSkillPaths();
   }
+  ensureUserLayer();
 
   console.log('\nSelf-test (tin instrument sau khi nó tự chứng minh):');
   let failed = false;
@@ -503,6 +536,20 @@ async function cmdDoctor() {
     const suspect = out.filter((l) => l.startsWith('WARN')).length;
     add('agent-memory (mã + evidence + last_verified + bỏ-khi)', r.status !== 0 ? 'FAIL' : suspect ? 'WARN' : 'PASS',
       r.status !== 0 ? (out.find((l) => l.startsWith('FAIL')) || 'xem `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh`') : suspect ? `${suspect} mục SUSPECT quá hạn — đối chiếu lại rồi sửa last_verified` : '');
+  }
+
+  // v1.28.0 — tầng nhớ cấp user: chỉ nhắc khi project ĐÃ dùng agent chuyên gia (có docs/agent-memory).
+  if (fs.existsSync('docs/agent-memory')) {
+    let ul = null; try { ul = fs.lstatSync(USER_LINK); } catch { /* chưa có */ }
+    if (!ul) add('kho nhớ cấp user (.claude/ai-simple-user)', 'WARN', 'chưa có — agent không mang gu của user sang repo này: chạy `ai-simple init`');
+    else if (fs.existsSync(memVerify)) {
+      let home = USER_LINK; try { home = fs.realpathSync(USER_LINK); } catch { /* giữ link */ }
+      const r = sh([memVerify], { cwd: home, env: { MEM_DIR: 'agent-memory', MEM_EVENTS: 'learning/events.jsonl' } });
+      const out = (r.stdout + r.stderr).split('\n');
+      const warn = out.filter((l) => l.startsWith('WARN')).length;
+      add(`kho nhớ cấp user ${home}`, r.status !== 0 ? 'FAIL' : warn ? 'WARN' : 'PASS',
+        r.status !== 0 ? (out.find((l) => l.startsWith('FAIL')) || 'xem agent-memory-verify.sh') : warn ? (out.find((l) => l.startsWith('WARN')) || '') : '');
+    }
   }
 
   if (fs.existsSync('CLAUDE.md')) {
@@ -649,6 +696,7 @@ function cmdUpdate(args) {
       }
     }
   }
+  ensureUserLayer();
   console.log('\nSelf-test:');
   let failed = false;
   for (const t of runSelfTests()) { console.log(`  ${t.ok ? 'PASS ' : 'FAIL '} ${t.name}`); if (!t.ok) { failed = true; console.log(t.out.split('\n').map((l) => '        ' + l).join('\n')); } }
@@ -903,6 +951,26 @@ async function cmdSelfTest(args = {}) { // dùng cho `npm test` của chính pac
     if (r5 !== 'bak-exists') { failed = true; jOk = false; console.log(`FAIL junction-fixture: .bak sẵn có phải DỪNG không bak-đè (${r5})`); }
     fs.rmSync(jt, { recursive: true, force: true });
     if (jOk) console.log('PASS junction-fixture (idempotent; stale-dir giữ nguyên khi thiếu flag; replace backup .bak; không bak-đè)');
+  }
+  // Fixture kho nhớ cấp user (v1.28.0 — temp, KHÔNG đụng ~ thật): tạo thư mục + git local + liên kết; chạy lại no-op;
+  // chống-oan: liên kết sẵn có không bị thay, đường tồn tại mà không phải liên kết thì giữ nguyên.
+  {
+    let uOk = true;
+    const ut = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-user-'));
+    const home = path.join(ut, 'home'); const link = path.join(ut, 'proj', '.claude', 'ai-simple-user');
+    const silent = () => {};
+    const u1 = ensureUserHome({ home, link, log: silent });
+    const u2 = ensureUserHome({ home, link, log: silent });
+    const shape = fs.existsSync(path.join(home, 'agent-memory')) && fs.existsSync(path.join(home, 'learning'))
+      && fs.existsSync(path.join(link, 'agent-memory'));
+    if (!(u1 === 'created' && u2 === 'ok' && shape)) { failed = true; uOk = false; console.log(`FAIL user-memory-fixture: tạo → no-op + đủ thư mục qua liên kết (${u1}/${u2}/${shape})`); }
+    const gitOk = spawnSync('git', ['--version']).status === 0;
+    if (gitOk && !fs.existsSync(path.join(home, '.git'))) { failed = true; uOk = false; console.log('FAIL user-memory-fixture: kho nhớ cấp user phải có git local'); }
+    const odd = path.join(ut, 'proj2', '.claude', 'ai-simple-user'); fs.mkdirSync(odd, { recursive: true });
+    const u3 = ensureUserHome({ home, link: odd, log: silent });
+    if (!(u3 === 'odd' && !fs.lstatSync(odd).isSymbolicLink())) { failed = true; uOk = false; console.log(`FAIL user-memory-fixture: thư mục thật sẵn có phải GIỮ NGUYÊN (${u3})`); }
+    fs.rmSync(ut, { recursive: true, force: true });
+    if (uOk) console.log('PASS user-memory-fixture (tạo kho + git local + liên kết; idempotent; không đè thư mục thật)');
   }
   // Cross-cut coverage guard: 4 skill anh em PHẢI nhắc security-logic (sơ đồ 5-skill / handoff) —
   // identity-numbers chỉ đếm số, guard này bắt "skill thiếu sơ đồ" (reviewer cuối trừ điểm đúng lỗ này).

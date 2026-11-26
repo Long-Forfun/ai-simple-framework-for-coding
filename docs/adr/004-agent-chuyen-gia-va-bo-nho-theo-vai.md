@@ -69,3 +69,18 @@ Chỗ hở còn lại (nêu tên):
 - Kiểm tái dùng mã chỉ so với một mốc (HEAD): xoá đúng mã lớn nhất rồi dùng lại chính số đó ở commit sau thì không bắt được.
 - `--stats` chỉ đúng khi `/learn` được chạy và ghi `agent`. Không chạy `/learn` thì bảng trống, không có nghĩa là không ai sửa.
 - Nạp sẵn hai skill UI làm context ui-expert tăng khoảng 43KB mỗi lần gọi (trước đây agent chỉ Read một trong hai).
+
+## Vòng 3 — hai tầng nhớ (v1.28.0, 2026-11-26)
+
+**Câu hỏi của owner**: cùng một con thiết kế, làm ở nhiều repo, có học và tích luỹ gu của owner không? Vòng 1–2 trả lời: chưa. Bộ nhớ chỉ nằm trong từng repo; một lần sửa vì gu riêng ở repo A không sang được repo B. Đường lên skill (≥ 3 repo khác lĩnh vực, duyệt tay) quá chậm cho gu cá nhân, và đưa gu cá nhân vào skill phát hành là sai chỗ.
+
+**Quyết định**: thêm tầng "gu của user" theo vai, ở `~/.ai-simple-user/agent-memory/<vai>.md`.
+- **Nơi lưu**: owner chọn chỉ trên máy, không tạo repo GitHub. Bù lại có git local để hoàn tác, và cổng so được lịch sử.
+- **Ưu tiên**: tầng repo thắng khi mâu thuẫn. Đây không phải luật mới, là thứ tự ưu tiên NT12 đã có ("project spec > domain rule > user preference").
+- **Ngưỡng lên tầng user**: owner nói thẳng, hoặc cùng lần sửa ở ≥ 2 repo. Quyết định do khách hàng hoặc brand ép thì không được lên.
+- **Đo**: sổ event gộp ở tầng user → `--stats` cho số lần owner sửa từng vai, gộp mọi repo trên máy. Đây là chỉ số "chuyên gia của anh giỏi lên".
+
+**Chỗ hở nêu tên**:
+- Mac và PC có hai kho riêng, không tự đồng bộ (hệ quả của lựa chọn "chỉ trên máy"). Điều kiện nâng cấp: owner muốn đồng bộ → biến `~/.ai-simple-user` thành clone của một repo riêng tư; cấu trúc không phải đổi.
+- Việc chép event vào sổ gộp và commit git local là prompt-level. `doctor` chỉ kiểm hình dạng và lịch sử của những gì đã ghi.
+- Agent đọc file ngoài repo qua liên kết: công cụ nào không theo liên kết thì chỉ thấy tầng repo.

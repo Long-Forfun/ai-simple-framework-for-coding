@@ -32,6 +32,8 @@ function git(args, cwd) { return run('git', args, { cwd, shell: false }); }
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-simple-stranger-'));
 const installDir = path.join(tmp, 'install');
 const proj = path.join(tmp, 'proj');
+// v1.28.0 — init tạo kho nhớ cấp user: trỏ vào temp, KHÔNG đụng ~/.ai-simple-user thật của máy chạy test
+process.env.AI_SIMPLE_USER_HOME = path.join(tmp, 'user-home');
 fs.mkdirSync(installDir, { recursive: true });
 fs.mkdirSync(proj, { recursive: true });
 
@@ -66,6 +68,11 @@ try {
   git(['init', '-q'], proj); git(['config', 'user.email', 't@t.t'], proj); git(['config', 'user.name', 't'], proj);
   const ini = run('node', [cli, 'init'], { cwd: proj });
   check('init chạy sạch', ini.status === 0, ini.status !== 0 ? ini.out.split('\n').find((l) => /FAIL/.test(l)) : '');
+  // v1.28.0 — init tạo kho nhớ cấp user (temp) + liên kết per-machine được gitignore
+  const ul = path.join(proj, '.claude', 'ai-simple-user');
+  const giTxt = fs.existsSync(path.join(proj, '.gitignore')) ? fs.readFileSync(path.join(proj, '.gitignore'), 'utf8') : '';
+  const ulOk = fs.existsSync(path.join(ul, 'agent-memory')) && giTxt.includes('.claude/ai-simple-user');
+  check('init tạo liên kết kho nhớ cấp user + gitignore', ulOk, ulOk ? '' : fs.existsSync(ul) ? 'thiếu dòng gitignore' : 'không có .claude/ai-simple-user');
   // hooksPath do init set — bảo đảm hook chạy
   git(['config', 'core.hooksPath', '.githooks'], proj);
   const doc = run('node', [cli, 'doctor'], { cwd: proj });

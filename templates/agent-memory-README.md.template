@@ -1,9 +1,23 @@
 # Bộ nhớ theo vai của agent chuyên gia
-<!-- ai-simple-version: 1.27.0 -->
+<!-- ai-simple-version: 1.28.0 -->
 
 > Mỗi agent chuyên gia (`.claude/agents/*-expert.md`, `verifier.md`) có MỘT file ở đây: `docs/agent-memory/<tên-agent>.md`.
 > File nằm trong git: mọi máy, mọi phiên, mọi công cụ AI đọc cùng một bản; sửa sai bằng `git revert`.
 > Đây là nguồn DUY NHẤT của giao thức — file agent chỉ trỏ về đây, không chép lại.
+
+## Hai tầng nhớ (v1.28.0)
+
+| Tầng | Ở đâu | Nhớ gì | Đồng bộ |
+|---|---|---|---|
+| **Gu của user** | `.claude/ai-simple-user/agent-memory/<vai>.md` (liên kết tới `~/.ai-simple-user/`, `init` tạo) | Cách user muốn vai này làm, **không gắn với project hay khách hàng nào**: "bảng admin luôn dày đặc", "không dùng bóng đổ trang trí" | Mọi repo trên MÁY NÀY. Không lên GitHub (owner chốt 2026-11-26); có git local để hoàn tác |
+| **Chuyện của repo** | `docs/agent-memory/<vai>.md` | Thứ riêng của project này: domain, khách hàng, brand, bẫy đã dính | Trong git của repo: mọi máy, mọi phiên |
+
+- **Mâu thuẫn → tầng repo thắng** (NT12 thứ tự ưu tiên: spec/domain của project > gu của user > skill mặc định). Ví dụ gu chung là "dày đặc" nhưng ForFish cho ngư dân ngoài trời ghi "chữ to, thưa" → ở ForFish làm theo ForFish.
+- **Lên tầng gu của user khi**: user nói thẳng kiểu "từ giờ luôn…/ở đâu cũng…" (`explicit-instruction`), HOẶC cùng một lần sửa lặp lại ở ≥ 2 repo khác nhau. Một lần sửa ở một repo → chỉ ghi tầng repo. Quyết định do khách hàng/brand ép → CẤM lên tầng user.
+- **Sửa tầng user xong phải commit vào git local** của nó, để lần sau máy so được lịch sử và còn đường hoàn tác:
+  `git -C .claude/ai-simple-user add -A && git -C .claude/ai-simple-user commit -qm "<vai>: <mã> <tóm tắt>"`
+- Cổng máy kiểm cả hai tầng: `ai-simple doctor` (tầng user), `agent-memory-verify.sh` (tầng repo).
+- **Chỗ hở nêu tên**: tầng user không có trên máy khác (PC GPU có kho riêng, không tự đồng bộ). Hai kho lệch nhau là chuyện được chấp nhận theo lựa chọn "chỉ trên máy".
 
 ## Thứ gì được nhớ
 
@@ -34,6 +48,7 @@ KHÔNG nhớ ở đây:
 | Agent xong việc | Có điều đáng nhớ và đủ bằng chứng → thêm 1 mục. Mục đã sai → xoá ngay (git giữ lịch sử). Không có gì mới → không ghi | Agent |
 | User chỉnh bản agent làm | `/learn` ghi event; quyết định thuộc riêng một vai → promote vào file của vai đó | AI + user |
 | Trước commit / `doctor` | `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh` | Máy |
+| Đo xuyên repo | `MEM_DIR=.claude/ai-simple-user/agent-memory MEM_EVENTS=.claude/ai-simple-user/learning/events.jsonl sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh --stats` (chạy ở gốc repo) — số lần user sửa từng vai, gộp MỌI repo trên máy, theo tháng | AI + user |
 | Mỗi quý (`/audit`) | Soát mục SUSPECT; mục lặp ở nhiều project → hồ sơ đề xuất đưa vào skill. Chạy `agent-memory-verify.sh --stats`: số lần user sửa từng vai theo tháng phải giảm; vai nào không giảm sau một quý thì soát lại bộ nhớ và skill của vai đó | AI + user duyệt |
 
 ## Lớn lên theo thời gian (không phình)

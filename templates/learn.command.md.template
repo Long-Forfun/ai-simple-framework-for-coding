@@ -31,10 +31,10 @@ Event có SHA không qua được `cat-file` hoặc `changed_paths` không khớ
 Append vào `docs/learning/events.jsonl` (tạo nếu chưa có; **parallel mode**: ghi `docs/learning/events/<run>-<lot>.jsonl` trong lot mình — worker không đụng file global, NT13):
 
 ```json
-{"at":"<ISO>","run":"<run|solo>","lot":"<lot|->","agent":"<ba-expert|ui-expert|security-expert|verifier|->","base_sha":"...","initial_sha":"...","accepted_sha":"...","user_revisions":["..."],"changed_paths":["..."],"inferred_decisions":[{"decision":"<assertion>","scope":"<component|domain:x|project:x|user>","evidence":"explicit-instruction|strong-accepted|medium-accepted|weak-inferred"}]}
+{"at":"<ISO>","repo":"<tên repo>","run":"<run|solo>","lot":"<lot|->","agent":"<ba-expert|ui-expert|security-expert|verifier|->","base_sha":"...","initial_sha":"...","accepted_sha":"...","user_revisions":["..."],"changed_paths":["..."],"inferred_decisions":[{"decision":"<assertion>","scope":"<component|domain:x|project:x|user>","evidence":"explicit-instruction|strong-accepted|medium-accepted|weak-inferred"}]}
 ```
 
-`agent`: bản AI user sửa là do agent chuyên gia nào làm (`-` nếu main agent tự làm). Đây là dữ liệu duy nhất cho câu hỏi "chuyên gia có giỏi lên không": `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh --stats` đếm số lần user sửa từng vai theo tháng — vai giỏi lên thì cột đó giảm dần.
+`agent`: bản AI user sửa là do agent chuyên gia nào làm (`-` nếu main agent tự làm). Đây là dữ liệu duy nhất cho câu hỏi "chuyên gia có giỏi lên không": `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh --stats` đếm số lần user sửa từng vai theo tháng — vai giỏi lên thì cột đó giảm dần. Event có `agent` khác `-` → append THÊM một bản y hệt vào `.claude/ai-simple-user/learning/events.jsonl` (nếu liên kết tồn tại): đó là sổ gộp mọi repo trên máy, dùng để đo và để thấy cùng một lần sửa lặp ở nhiều repo.
 
 `evidence` là ENUM — KHÔNG có confidence thập phân: explicit-instruction (user nói thẳng/lặp ≥2 lần) > strong-accepted (chốt/merge theo yêu cầu) > medium-accepted (im lặng+merge / xây tiếp lên trên) > weak-inferred (chỉ suy từ diff).
 
@@ -42,7 +42,7 @@ Append vào `docs/learning/events.jsonl` (tạo nếu chưa có; **parallel mode
 
 - `explicit-instruction` → ghi luôn rule ở scope đúng (memory nếu user-scope theo format NT07; app-map nếu domain; design-system/CLAUDE nếu project).
 - ≥ 2–3 case ĐỘC LẬP (khác session, cách nhau thời gian) cùng project → project rule.
-- Quyết định thuộc RIÊNG một vai chuyên gia (BA / UI / security / verifier), vai khác không cần biết → ghi vào `docs/agent-memory/<vai>.md` theo dạng một-dòng trong `docs/agent-memory/README.md`, rồi chạy `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh`. Vai khác cũng cần → KHÔNG ghi ở đó, ghi vào spec/app-map.
+- Quyết định thuộc RIÊNG một vai chuyên gia (BA / UI / security / verifier), vai khác không cần biết → ghi vào `docs/agent-memory/<vai>.md` theo dạng một-dòng trong `docs/agent-memory/README.md`, rồi chạy `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh`. Vai khác cũng cần → KHÔNG ghi ở đó, ghi vào spec/app-map. Là gu của user, không gắn project (user nói "từ giờ luôn…", hoặc sổ gộp cho thấy cùng lần sửa ở ≥ 2 repo) → ghi tầng user `.claude/ai-simple-user/agent-memory/<vai>.md` rồi commit git local của nó (xem "Hai tầng nhớ" trong README giao thức).
 - Mỗi rule mới BẮT BUỘC kèm: evidence links (SHA/event), `last_verified: <date>`, rollback condition. Rule không có 3 thứ này = không được ghi.
 - Chỉ 1 case + không explicit → dừng ở event, KHÔNG tạo rule. Ngoại lệ security/data-loss: assertion phải nêu RỦI RO CỤ THỂ + evidence tối thiểu `strong-accepted` — `weak-inferred` tự dán nhãn "security" không được đặc cách.
 - Parallel mode: khai `docs/learning/events/<run>-<lot>.jsonl` vào write_paths khi claim (hoặc `parallel extend`) — event file cũng là file của lot, không nằm ngoài doctrine R2.

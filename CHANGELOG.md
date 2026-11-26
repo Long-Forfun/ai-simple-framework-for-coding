@@ -4,6 +4,20 @@ Toàn bộ lịch sử tiến hóa của phương pháp. README/methodology dùn
 
 Convention từ v1.10.0: mỗi mục version có thể chứa dòng `**RE-APPLY**: <việc project tiêu thụ cần làm lại sau update>` — `ai-simple update` tự trích các dòng này trong khoảng (bản-cũ → bản-mới] in thành checklist. Không có dòng RE-APPLY = update xong là xong.
 
+## v1.28.0 — 2026-11-26 (bộ nhớ theo vai hai tầng: gu của user dùng chung mọi repo trên máy)
+
+Nguồn: owner hỏi "cùng một con thiết kế có học và tích luỹ qua các repo không" — v1.27.0 mới nhớ theo từng repo; gu của user sửa ở repo A không sang được repo B. Owner chốt nơi lưu: chỉ trên máy, không remote. Chi tiết: ADR 004 §Vòng 3.
+
+Thay đổi:
+- **Tầng nhớ cấp user**: `~/.ai-simple-user/agent-memory/<vai>.md` (đổi chỗ bằng `AI_SIMPLE_USER_HOME`), có git local để hoàn tác. `init`/`update` tạo kho + liên kết `.claude/ai-simple-user` (gitignore, per-machine như junction skill).
+- **4 agent đọc hai tầng**: gu của user + chuyện của repo; mâu thuẫn thì tầng repo thắng (NT12 thứ tự ưu tiên).
+- **Giao thức** `docs/agent-memory/README.md` §Hai tầng nhớ: khi nào lên tầng user (nói thẳng "từ giờ luôn…" hoặc cùng lần sửa ở ≥ 2 repo; quyết định của khách hàng/brand thì cấm), commit git local sau khi sửa.
+- **`/learn`**: event thêm `repo`; event có `agent` được chép thêm vào sổ gộp `~/.ai-simple-user/learning/events.jsonl` → `--stats` đo số lần user sửa từng vai, gộp mọi repo.
+- **`doctor`**: kiểm tầng user bằng cùng cổng `agent-memory-verify.sh` (có so lịch sử git local); project có `docs/agent-memory` mà thiếu liên kết → WARN.
+- Fixture `user-memory-fixture` trong `npm test` (temp, không đụng ~ thật); `stranger-path` trỏ kho user vào temp.
+
+**RE-APPLY**: chạy `ai-simple init` (hoặc `ai-simple update`) ở từng project để tạo liên kết `.claude/ai-simple-user` + nhận 4 agent bản đọc hai tầng; máy khác (PC) chạy lại để có kho riêng của máy đó.
+
 ## v1.27.0 — 2026-11-25 (agent chuyên gia vỏ mỏng + bộ nhớ theo vai trong git)
 
 Nguồn: đánh giá github.com/msitarzewski/agency-agents tại `8ae6164`. Không cài; nội hoá ba ý, viết lại. Chi tiết + phản biện: `docs/adr/004-agent-chuyen-gia-va-bo-nho-theo-vai.md`.

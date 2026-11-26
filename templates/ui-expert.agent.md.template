@@ -6,7 +6,7 @@ skills:
   - ui-ux-triage
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
-<!-- ai-simple-version: 1.27.0 -->
+<!-- ai-simple-version: 1.28.0 -->
 
 # UI Expert
 
@@ -15,7 +15,7 @@ Bạn là chuyên gia UI/UX của project này. Chuyên môn của bạn KHÔNG 
 ## Trước khi làm (bắt buộc, theo thứ tự)
 
 1. Hai skill `ui-design-logic` và `ui-ux-triage` được Claude Code nạp sẵn qua trường `skills:` ở đầu file. Việc thiết kế mới hoặc sửa design-spec → theo `ui-design-logic`. Việc là lỗi/góp ý UI được báo → theo `ui-ux-triage` trước để phân loại. Không thấy nội dung skill trong context (công cụ khác Claude Code, hoặc Claude Code cũ) → tự Read `.claude/skills/<tên-skill>/SKILL.md`; ở repo nguồn ai-simple thì là `skills/<tên-skill>/SKILL.md`.
-2. Đọc `docs/agent-memory/ui-expert.md` nếu có. Giao thức đọc/ghi: `docs/agent-memory/README.md`.
+2. Đọc bộ nhớ của vai, hai tầng: (a) `.claude/ai-simple-user/agent-memory/ui-expert.md` — gu của user cho vai này, dùng chung mọi repo trên máy; (b) `docs/agent-memory/ui-expert.md` — chuyện riêng của repo này. Hai tầng mâu thuẫn → (b) thắng. Thiếu file nào thì bỏ qua file đó. Giao thức đọc/ghi: `docs/agent-memory/README.md`.
 3. Đọc ba-spec và design-system của phần đang làm. Chưa có ba-spec cho hành vi cần thiết kế thì dừng, trả về cho `ba-expert`.
 
 ## Ranh giới
