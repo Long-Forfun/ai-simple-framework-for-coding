@@ -46,3 +46,26 @@ Số bản sắc (nguyên tắc / lớp / skill) KHÔNG đổi: agent là cách 
 - Agent có đọc bộ nhớ và skill đầu việc hay không là prompt-level, chưa có cổng máy.
 - `agent-memory-verify.sh` chạy trong `npm test` và `doctor`; **chưa nối pre-commit** và thư mục `docs/agent-memory/` **chưa nằm trong phạm vi lint prompt-injection** của hook. Nợ: nối cả hai sau khi chạy thử trên ForFish ít nhất hai tuần không chặn oan (đổi hook là YELLOW).
 - Chưa có số đo hiệu quả (agent có bộ nhớ làm ít sai hơn không). Điều kiện rollback: sau một quý, nếu file bộ nhớ ở project tiêu thụ trống hoặc toàn mục SUSPECT không ai soát → gỡ bộ nhớ, giữ agent.
+
+## Phản biện vòng 2 (cùng ngày, trước khi merge)
+
+Đối chiếu lại agency-agents (HEAD vẫn `8ae6164`, 170.199★ đo qua GitHub API ngày 2026-11-25) và khảo sát khoảng 40 repo về bộ nhớ agent (letta-code, mem0, Graphiti, cognee, MemOS, LangMem, claude-mem, basic-memory), cách tự cải thiện (ACE, DSPy/GEPA, Reflexion, Voyager) và framework điều phối team (crewAI, LangGraph, MetaGPT, agno). Kết luận vòng 1 giữ nguyên: không cài framework nào, bộ nhớ là file trong git. Bốn chỗ hở được vá:
+
+| Chỗ hở của vòng 1 | Vá | Nguồn ý tưởng |
+|---|---|---|
+| Bước "đọc SKILL.md" chỉ là lời dặn trong prompt; ở repo nguồn đường `.claude/skills/...` còn không tồn tại | Frontmatter `skills:` → Claude Code tự nạp skill vào context agent. Đo trên binary 2.1.331 (`strings`): schema có `skills` "Array of skill names to preload into the agent context". Giữ đường dự phòng Read cho công cụ khác và cho repo nguồn (`skills/<tên>/SKILL.md`) | Docs sub-agents của Claude Code |
+| Giao thức nói "không tái dùng mã" nhưng máy không kiểm | `agent-memory-verify.sh` so với HEAD: mã mới ≤ mã lớn nhất ở HEAD → FAIL | — |
+| Không có gì ngăn AI viết lại cả file nhớ (mòn chi tiết, mất bằng chứng) | Luật "sửa từng dòng" + WARN khi mất quá nửa số mục so với HEAD | ACE (Agentic Context Engineering): delta update thay vì viết lại, chống "context collapse" |
+| "Agent giỏi lên theo thời gian" không đo được | Event `/learn` có trường `agent`; `agent-memory-verify.sh --stats` đếm số lần user sửa từng vai theo tháng | Không nguồn nào trong khảo sát đo chỉ số này — các nguồn chỉ đo benchmark |
+| Một sự thật ghi ở hai vai sẽ lệch nhau | WARN khi cùng khẳng định nằm ở ≥ 2 file vai | Bài học #08/#10: copy = drift |
+
+Không làm (có lý do):
+- **Bộ đếm helpful/harmful từng mục kiểu ACE**: agent phải tự cập nhật số đếm sau mỗi việc → prompt-level, dễ thành số tự chấm. Thay bằng số đo từ event `/learn` (user thật sửa).
+- **Thêm agent UX / user-flow riêng**: user flow nằm trong `ba-flow-logic`, UX nằm trong `ui-design-logic` + `ui-ux-triage`. Tách vai không có skill riêng đứng sau chỉ thêm chi phí chọn agent.
+- **Dùng `memory:` của Claude Code**: lý do vòng 1 vẫn đúng. Docs nay xác nhận hành vi nạp (200 dòng hoặc 25KB đầu `MEMORY.md`), nhưng dạng ghi vẫn do harness quyết và chỉ Claude Code đọc.
+- **Nối pre-commit**: giữ điều kiện vòng 1 (chạy thử trên ForFish hai tuần không chặn oan).
+
+Chỗ hở còn lại (nêu tên):
+- Kiểm tái dùng mã chỉ so với một mốc (HEAD): xoá đúng mã lớn nhất rồi dùng lại chính số đó ở commit sau thì không bắt được.
+- `--stats` chỉ đúng khi `/learn` được chạy và ghi `agent`. Không chạy `/learn` thì bảng trống, không có nghĩa là không ai sửa.
+- Nạp sẵn hai skill UI làm context ui-expert tăng khoảng 43KB mỗi lần gọi (trước đây agent chỉ Read một trong hai).

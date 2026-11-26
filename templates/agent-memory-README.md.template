@@ -23,7 +23,8 @@ KHÔNG nhớ ở đây:
 
 - `evidence` phải truy được: commit, dòng trong spec, hoặc câu user nói (ghi event bằng `/learn`). Không có bằng chứng thì không ghi.
 - `bỏ khi` là điều kiện xoá. Mục không nói được khi nào hết đúng thì sẽ sống mãi và thành tiền đề cũ.
-- Mã `M-NNN` tăng dần trong từng file, không tái dùng mã đã xoá.
+- Mã `M-NNN` tăng dần trong từng file, không tái dùng mã đã xoá (máy chặn: mã mới phải lớn hơn mã lớn nhất ở HEAD).
+- **Sửa từng dòng, không viết lại cả file.** Mỗi lần chỉ thêm, sửa hoặc xoá đúng mục cần đổi. Để AI viết lại cả file sau mỗi việc là cách nhanh nhất làm mòn chi tiết và mất bằng chứng (máy cảnh báo khi một lần sửa làm mất quá nửa số mục).
 
 ## Vòng đời
 
@@ -33,7 +34,7 @@ KHÔNG nhớ ở đây:
 | Agent xong việc | Có điều đáng nhớ và đủ bằng chứng → thêm 1 mục. Mục đã sai → xoá ngay (git giữ lịch sử). Không có gì mới → không ghi | Agent |
 | User chỉnh bản agent làm | `/learn` ghi event; quyết định thuộc riêng một vai → promote vào file của vai đó | AI + user |
 | Trước commit / `doctor` | `sh .claude/skills/ai-simple-product-dev/agent-memory-verify.sh` | Máy |
-| Mỗi quý (`/audit`) | Soát mục SUSPECT; mục lặp ở nhiều project → hồ sơ đề xuất đưa vào skill | AI + user duyệt |
+| Mỗi quý (`/audit`) | Soát mục SUSPECT; mục lặp ở nhiều project → hồ sơ đề xuất đưa vào skill. Chạy `agent-memory-verify.sh --stats`: số lần user sửa từng vai theo tháng phải giảm; vai nào không giảm sau một quý thì soát lại bộ nhớ và skill của vai đó | AI + user duyệt |
 
 ## Lớn lên theo thời gian (không phình)
 
@@ -44,4 +45,4 @@ Trần 40 mục mỗi vai. Chạm trần là tín hiệu phải làm một trong
 
 ## Ranh giới của lời bảo đảm
 
-Máy kiểm được **hình dạng** của mục (mã, bằng chứng có ghi, ngày, điều kiện bỏ, trần). Máy không kiểm được bằng chứng có **đúng** không — phần đó là việc của agent `verifier` và của người duyệt diff. Bộ nhớ là nội dung nạp thẳng vào AI: duyệt diff của thư mục này kỹ như duyệt code.
+Máy kiểm được **hình dạng** của mục (mã, bằng chứng có ghi, ngày, điều kiện bỏ, trần, không tái dùng mã) và cảnh báo hai dấu hiệu xấu (viết lại cả file; cùng một khẳng định nằm ở hai vai — sự thật chung phải lên spec/app-map). Máy không kiểm được bằng chứng có **đúng** không — phần đó là việc của agent `verifier` và của người duyệt diff. Bộ nhớ là nội dung nạp thẳng vào AI: duyệt diff của thư mục này kỹ như duyệt code.

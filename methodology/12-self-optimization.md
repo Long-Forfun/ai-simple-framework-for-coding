@@ -119,7 +119,7 @@ Learning event (JSON, per-session; **[ACTIVE]** = ghi tay qua `/learn`, **[CONTR
 
 ```json
 {
-  "run": "hp-rewards", "lot": "shop",
+  "run": "hp-rewards", "lot": "shop", "agent": "ui-expert",
   "base_sha": "abc123", "initial_sha": "def456", "accepted_sha": "fed987",
   "user_revisions": ["make cards more compact", "remove decorative shadow"],
   "changed_paths": ["src/features/rewards/shop/RewardCard.tsx"],
@@ -182,7 +182,7 @@ Mức 3 SKILL CANDIDATE (lặp ≥ 3 project KHÁC DOMAIN cùng user, cách nhau
 ```
 
 - Security/data-loss: được đặc cách lên mức 2 từ 1 case — NHƯNG assertion phải nêu RỦI RO CỤ THỂ (lộ data gì, mất gì) và evidence tối thiểu `strong-accepted`; `weak-inferred` tự dán nhãn "security" không được đặc cách (chống lách ngưỡng).
-- **Bộ nhớ theo vai [ACTIVE]** (ADR 004): PROJECT RULE chỉ một vai chuyên gia cần (BA / UI / security / verifier) ghi vào `docs/agent-memory/<vai>.md` — một dòng một mục, bắt buộc mã + `evidence` + `last_verified` + `bỏ khi`, trần 40 mục. Mục ở đây chịu đúng cơ chế vòng A: quá hạn hoặc code liên quan đổi → SUSPECT, đối chiếu rồi mới tin. Chạm trần → đẩy lên spec/app-map, hoặc thành SKILL CANDIDATE (mức 3) *(ép bởi `agent-memory-verify.sh` — chạy trong `doctor` và `npm test`; chưa nối pre-commit)*.
+- **Bộ nhớ theo vai [ACTIVE]** (ADR 004): PROJECT RULE chỉ một vai chuyên gia cần (BA / UI / security / verifier) ghi vào `docs/agent-memory/<vai>.md` — một dòng một mục, bắt buộc mã + `evidence` + `last_verified` + `bỏ khi`, trần 40 mục. Mục ở đây chịu đúng cơ chế vòng A: quá hạn hoặc code liên quan đổi → SUSPECT, đối chiếu rồi mới tin. Chạm trần → đẩy lên spec/app-map, hoặc thành SKILL CANDIDATE (mức 3). Chỉ sửa từng dòng, không viết lại cả file; không tái dùng mã. Event `/learn` ghi trường `agent` (vai đã làm bản bị sửa) → `agent-memory-verify.sh --stats` đếm số lần user sửa từng vai theo tháng: đó là số đo "chuyên gia giỏi lên" *(ép bởi `agent-memory-verify.sh` — chạy trong `doctor` và `npm test`; chưa nối pre-commit)*.
 - KHÔNG có đường "nhiều user độc lập" tự động — repo 1 owner thì đường đó là spec chết; promote lên core luôn qua tay owner.
 
 ## Thứ tự ưu tiên khi mâu thuẫn [ACTIVE]

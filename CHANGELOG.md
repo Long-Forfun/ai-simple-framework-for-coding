@@ -15,6 +15,10 @@ Thay đổi:
 - **Cổng máy** `skills/ai-simple-product-dev/agent-memory-verify.sh` (+ `--self-test`, 2 fixture chống chặn oan): chạy trong `npm test` và `doctor`. Chưa nối pre-commit (nợ ghi ở ADR 004).
 - `/learn` bước 4 và nguyên tắc 12 vòng B: thêm đích promote "bộ nhớ theo vai".
 - `CLAUDE.md.template`: bảng giao việc cho 4 agent.
+- **Phản biện vòng 2** (ADR 004 §Phản biện vòng 2):
+  - Agent dùng frontmatter `skills:` để Claude Code tự nạp skill (đo trên binary 2.1.331), có đường dự phòng Read.
+  - `agent-memory-verify.sh` v2: FAIL khi tái dùng mã đã xoá; WARN khi viết lại cả file (mất > nửa số mục so với HEAD) hoặc cùng khẳng định nằm ở hai vai; thêm `--stats` đếm số lần user sửa từng vai theo tháng.
+  - Event `/learn` thêm trường `agent`. Giao thức bộ nhớ thêm luật "sửa từng dòng".
 
 **RE-APPLY**: project đã init trước v1.27.0 chạy `ai-simple init` (file đã có được giữ nguyên) để nhận 4 agent + `docs/agent-memory/README.md`; chép bảng "Agent chuyên gia" từ `CLAUDE.md.template` vào CLAUDE.md nếu muốn main agent tự giao việc.
 
