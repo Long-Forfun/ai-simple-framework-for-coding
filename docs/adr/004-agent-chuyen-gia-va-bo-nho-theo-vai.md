@@ -1,6 +1,6 @@
 # ADR 004 — Agent chuyên gia vỏ mỏng + bộ nhớ theo vai trong git (đánh giá agency-agents, không cài)
 
-- **Ngày**: 2026-11-25 · **Trạng thái**: PROPOSED trên nhánh `feat/expert-agents-memory` (chờ owner duyệt merge) · **Thi công**: v1.27.0
+- **Ngày**: 2026-11-25 · **Trạng thái**: ACCEPTED — owner duyệt merge vào main ngày 2026-11-26 · **Thi công**: v1.27.0
 - **Nguồn đánh giá**: github.com/msitarzewski/agency-agents tại commit `8ae6164` (2026-11-08), MIT.
 - **Quy trình**: một phiên, đọc repo nguồn + đo bằng lệnh. KHÔNG qua hội đồng nhiều agent — ghi rõ để không bị đọc nhầm là án lệ hội đồng.
 
